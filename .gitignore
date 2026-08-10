@@ -241,3 +241,7 @@ $RECYCLE.BIN/
 # Gradle build outputs
 .gradle/
 build/
+
+# IDE
+.idea/
+*.iml
