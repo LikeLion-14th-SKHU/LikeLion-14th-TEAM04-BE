@@ -1,3 +1,5 @@
 spring:
   application:
     name: memory_atelier
+  profiles:
+    active: local
