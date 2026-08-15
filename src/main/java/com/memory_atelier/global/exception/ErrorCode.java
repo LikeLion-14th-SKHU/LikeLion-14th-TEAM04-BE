@@ -45,7 +45,12 @@ public enum ErrorCode {
     NAVER_EMAIL_NOT_FOUND(HttpStatus.BAD_REQUEST, "400-4", "네이버 계정에서 이메일을 가져올 수 없습니다."),
 
     // S3
-    FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "500-1", "파일 업로드에 실패했습니다.");
+    FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S3_500", "파일 업로드에 실패했습니다."),
+
+    // Memory 도메인
+    MEMORY_NOT_FOUND(HttpStatus.NOT_FOUND, "M_404", "존재하지 않는 추억입니다."),
+    INVALID_ITEM_OPTION(HttpStatus.BAD_REQUEST, "M_400", "선택할 수 없는 항목입니다."),
+    REFINED_STORY_NOT_READY(HttpStatus.CONFLICT, "M_409", "AI로 다듬은 사연이 아직 없습니다. 먼저 분석을 실행해 주세요.");
 
     private final HttpStatus status;
     private final String code;
@@ -57,10 +62,8 @@ public enum ErrorCode {
         this.message = message;
     }
 
-    /**
-     * 스프링이 자체적으로 처리한 예외의 상태 코드를 대응되는 ErrorCode로 되돌린다.
-     * 도메인 코드가 늘어나도 매핑이 흔들리지 않도록 선언 순서에 의존하지 않고 명시적으로 나열한다.
-     */
+    // 스프링이 자체적으로 처리한 예외의 상태 코드를 대응되는 ErrorCode로 되돌린다
+    // 도메인 코드가 늘어나도 매핑이 흔들리지 않도록 선언 순서에 의존하지 않고 명시적으로 나열한다
     public static ErrorCode from(HttpStatusCode statusCode) {
         return switch (statusCode.value()) {
             case 400 -> INVALID_INPUT;
