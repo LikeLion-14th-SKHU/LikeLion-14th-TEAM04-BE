@@ -21,8 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -64,7 +62,7 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_CREDENTIALS, ErrorCode.INVALID_CREDENTIALS.getMessage());
         }
 
-        String accessToken = jwtUtil.generateToken(user.getUserId());
+        String accessToken = jwtUtil.generateToken(user.getUserId(), user.getRole());
         String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());
 
         refreshTokenRepository.deleteByUserId(user.getUserId());
@@ -97,7 +95,10 @@ public class AuthService {
             throw new CustomException(ErrorCode.EXPIRED_REFRESH_TOKEN, ErrorCode.EXPIRED_REFRESH_TOKEN.getMessage());
         }
 
-        String newAccessToken = jwtUtil.generateToken(savedToken.getUserId());
+        User user = userRepository.findById(savedToken.getUserId())
+                .orElseThrow(()->new CustomException(ErrorCode.USER_NOT_FOUND, ErrorCode.USER_NOT_FOUND.getMessage()));
+
+        String newAccessToken = jwtUtil.generateToken(user.getUserId(), user.getRole());
 
         return new TokenRefreshResponseDto(newAccessToken);
     }

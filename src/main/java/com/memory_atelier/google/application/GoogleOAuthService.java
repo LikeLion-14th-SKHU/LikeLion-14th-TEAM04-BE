@@ -70,7 +70,7 @@ public class GoogleOAuthService {
                                 .build()
                 ));
 
-        String accessToken = jwtUtil.generateToken(user.getUserId());
+        String accessToken = jwtUtil.generateToken(user.getUserId(), user.getRole());
         String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());
 
         refreshTokenRepository.deleteByUserId(user.getUserId());

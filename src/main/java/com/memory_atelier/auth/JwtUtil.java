@@ -1,5 +1,6 @@
 package com.memory_atelier.auth;
 
+import com.memory_atelier.user.domain.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -23,9 +24,10 @@ public class JwtUtil {
     private long refreshExpiration;
 
     // 토큰 생성
-    public String generateToken(Long userId) {
+    public String generateToken(Long userId, Role role) {
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim("role", role.name())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey())
@@ -73,5 +75,9 @@ public class JwtUtil {
     private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public String getRole(String token) {
+        return parseClaims(token).get("role", String.class);
     }
 }

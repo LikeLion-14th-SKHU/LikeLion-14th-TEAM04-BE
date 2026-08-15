@@ -89,6 +89,13 @@ public class UserService {
         return UserListResponseDto.from(userPage);
     }
 
+    // 닉네임으로 회원 검색 (부분 일치, 탈퇴 회원 제외, 공개 프로필 정보만 반환)
+    public UserListResponseDto searchByNickname(String nickname, Pageable pageable) {
+        Page<User> userPage = userRepository.findByNicknameContainingAndDeletedAtIsNull(nickname, pageable);
+        return UserListResponseDto.from(userPage);
+    }
+
+
     // 회원 정보 수정
     @Transactional
     public UserInfoResponseDto updateUser(Long userId, UserUpdateRequestDto requestDto) {

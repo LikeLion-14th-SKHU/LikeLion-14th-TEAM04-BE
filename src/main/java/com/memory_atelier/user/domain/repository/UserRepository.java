@@ -17,4 +17,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
 
     Page<User> findAllByDeletedAtIsNull(Pageable pageable);
+
+    // 닉네임으로 회원 검색 (부분 일치, 탈퇴 회원 제외)
+    Page<User> findByNicknameContainingAndDeletedAtIsNull(String nickname, Pageable pageable);
 }

@@ -7,15 +7,15 @@ import org.springframework.data.domain.Page;
 import java.util.List;
 
 public record UserListResponseDto (
-    List<UserInfoResponseDto> users,
+    List<UserPublicProfileResponseDto> users,
     int currentPage,
     int totalPages,
     long totalElements,
     boolean hasNext
 ) {
     public static UserListResponseDto from(Page<User> userPage) {
-        List<UserInfoResponseDto> userInfoList = userPage.getContent().stream()
-                .map(UserInfoResponseDto::from)
+        List<UserPublicProfileResponseDto> userInfoList = userPage.getContent().stream()
+                .map(UserPublicProfileResponseDto::from)
                 .toList();
 
         return new UserListResponseDto(
