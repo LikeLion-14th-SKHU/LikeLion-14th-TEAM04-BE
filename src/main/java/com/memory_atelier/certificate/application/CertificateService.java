@@ -6,6 +6,8 @@ import com.memory_atelier.edition.domain.EditionConcept;
 import com.memory_atelier.edition.domain.EditionGeneration;
 import com.memory_atelier.global.exception.CustomException;
 import com.memory_atelier.global.exception.ErrorCode;
+import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -67,5 +69,19 @@ public class CertificateService {
     // 내 컬렉션에 전시되는 카드 목록. 확정되지 않은 후보는 보증서가 없어 여기에 오르지 않는다
     public Page<Certificate> getMyCertificates(Long userId, Pageable pageable) {
         return certificateRepository.findAllByOwnerIdOrderByCreatedAtDesc(userId, pageable);
+    }
+
+    // 콘셉트 id로 보증서를 찾는다. 소유권을 확인하지 않고, 없으면 빈 값을 반환한다
+    // (커뮤니티 공유 뷰에서 "아직 확정 전이라 보여줄 게 없다"를 에러가 아니라 빈 결과로 다루기 위함)
+    public Optional<Certificate> findByConceptId(Long conceptId) {
+        return certificateRepository.findByConceptId(conceptId);
+    }
+
+    // 카드 단위로 비공개 처리된 콘셉트를 제외한 컬렉션 목록(공유 링크·공개 옷장에서 사용)
+    public Page<Certificate> getCertificatesExcluding(Long ownerId, Set<Long> excludedConceptIds, Pageable pageable) {
+        return excludedConceptIds.isEmpty()
+                ? certificateRepository.findAllByOwnerIdOrderByCreatedAtDesc(ownerId, pageable)
+                : certificateRepository.findAllByOwnerIdAndConceptIdNotInOrderByCreatedAtDesc(
+                        ownerId, excludedConceptIds, pageable);
     }
 }

@@ -37,7 +37,11 @@ public class SecurityConfig {
             "/auth/google/**",
             "/auth/naver/**",
             "/search",
-            "/*/public-profile"
+            "/*/public-profile",
+            "/community/editions",
+            "/community/editions/*",
+            "/community/collections",
+            "/community/shared/**"
     };
 
     private static final String[] DOCS_ENDPOINTS = {
@@ -92,6 +96,9 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(DOCS_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/logout").authenticated()
+                        // 좋아요 수/내 여부 조회는 비로그인도 볼 수 있어야 한다(공개 피드 카드마다 하트 개수가 붙음).
+                        // 등록·취소(POST/DELETE)는 아래 anyRequest().authenticated()로 계속 막힌다
+                        .requestMatchers(HttpMethod.GET, "/community/editions/*/likes").permitAll()
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

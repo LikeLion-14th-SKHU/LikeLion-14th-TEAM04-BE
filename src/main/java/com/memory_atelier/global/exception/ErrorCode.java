@@ -71,7 +71,14 @@ public enum ErrorCode {
     CERTIFICATE_NOT_FOUND(HttpStatus.NOT_FOUND, "CT_404", "발급된 보증서가 없습니다."),
 
     // Recommend 도메인
-    RECOMMENDATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RC_404", "아직 준비되지 않았거나 존재하지 않는 추천입니다.");
+    RECOMMENDATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RC_404", "아직 준비되지 않았거나 존재하지 않는 추천입니다."),
+
+    // Public Setting 도메인
+    PUBLIC_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "PS_404", "존재하지 않거나 공개되지 않은 링크입니다."),
+
+    // Community 도메인
+    CONCEPT_NOT_PUBLIC(HttpStatus.NOT_FOUND, "CM_404", "공개되지 않은 콘텐츠입니다."),
+    ALREADY_LIKED(HttpStatus.CONFLICT, "CM_409", "이미 좋아요를 눌렀습니다.");
 
     private final HttpStatus status;
     private final String code;

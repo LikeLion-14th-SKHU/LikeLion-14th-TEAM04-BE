@@ -10,9 +10,13 @@ import com.memory_atelier.publicsetting.domain.repository.PublicSettingRepositor
 import com.memory_atelier.user.application.UserService;
 import com.memory_atelier.user.domain.User;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +59,45 @@ public class PublicSettingService {
         PublicSetting setting = getOrCreate(userId, PublicSettingTargetType.SINGLE_CARD, concept);
         setting.updatePublic(isPublic);
         return setting;
+    }
+
+    // 해당 콘셉트가 외부에 공개된 상태인지. 카드 단위 설정이 있으면 그 값이 컬렉션 전체 설정보다 우선한다
+    public boolean isPubliclyVisible(EditionConcept concept) {
+        if (!concept.isUnlocked()) {
+            return false;
+        }
+        Long ownerId = concept.getGeneration().getMemory().getUser().getUserId();
+        return publicSettingRepository.findByUserUserIdAndScopeKey(ownerId, concept.getConceptId())
+                .map(PublicSetting::isPublic)
+                .orElseGet(() -> publicSettingRepository
+                        .findByUserUserIdAndScopeKey(ownerId, PublicSetting.COLLECTION_SCOPE_KEY)
+                        .map(PublicSetting::isPublic)
+                        .orElse(false));
+    }
+
+    // 공유 토큰으로 공개 설정을 찾는다. 비공개거나 탈퇴한 사용자의 토큰이면 존재하지 않는 것처럼 거절한다
+    public PublicSetting getPublicByShareToken(String shareToken) {
+        PublicSetting setting = publicSettingRepository.findByShareToken(shareToken)
+                .orElseThrow(() -> new CustomException(ErrorCode.PUBLIC_SETTING_NOT_FOUND));
+        if (!setting.isPublic() || !setting.getUser().isActive()) {
+            throw new CustomException(ErrorCode.PUBLIC_SETTING_NOT_FOUND);
+        }
+        return setting;
+    }
+
+    // 컬렉션 전체를 공개한 사용자 목록 — "누구의 옷장을 구경할지" 고르는 화면용
+    public Page<PublicSetting> getPublicFeed(String nicknameKeyword, Pageable pageable) {
+        String keyword = (nicknameKeyword == null) ? "" : nicknameKeyword.trim();
+        return publicSettingRepository.findPublicGalleries(keyword, pageable);
+    }
+
+    // 카드 단위로 비공개 처리된 콘셉트 id들. 컬렉션 전체가 공개여도 이 카드들은 제외해야 한다
+    public Set<Long> hiddenCardIds(Long ownerId) {
+        return publicSettingRepository
+                .findAllByUserUserIdAndTargetType(ownerId, PublicSettingTargetType.SINGLE_CARD).stream()
+                .filter(setting -> !setting.isPublic())
+                .map(PublicSetting::getScopeKey)
+                .collect(Collectors.toSet());
     }
 
     private PublicSetting getOrCreate(Long userId, PublicSettingTargetType targetType, EditionConcept concept) {

@@ -1,6 +1,7 @@
 package com.memory_atelier.certificate.domain.repository;
 
 import com.memory_atelier.certificate.domain.Certificate;
+import java.util.Collection;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,4 +40,24 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
             where c.concept.generation.memory.user.userId = :userId
             """)
     Page<Certificate> findAllByOwnerIdOrderByCreatedAtDesc(@Param("userId") Long userId, Pageable pageable);
+
+    // 공유 링크(컬렉션 전체)용. 카드 단위로 비공개 처리된 콘셉트는 애초에 쿼리에서 뺀다
+    // 가져온 뒤 걸러내면 숨긴 카드가 많을수록 실제 반환 건수가 size보다 작아진다
+    @Query(value = """
+            select c from Certificate c
+              join fetch c.concept concept
+              join fetch concept.generation g
+              join fetch g.memory m
+            where m.user.userId = :userId and concept.conceptId not in :excludedConceptIds
+            order by c.createdAt desc, c.certificateId desc
+            """,
+            countQuery = """
+            select count(c) from Certificate c
+            where c.concept.generation.memory.user.userId = :userId
+              and c.concept.conceptId not in :excludedConceptIds
+            """)
+    Page<Certificate> findAllByOwnerIdAndConceptIdNotInOrderByCreatedAtDesc(
+            @Param("userId") Long userId,
+            @Param("excludedConceptIds") Collection<Long> excludedConceptIds,
+            Pageable pageable);
 }
