@@ -11,6 +11,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
@@ -27,6 +28,7 @@ public class EditionPipelineRunner {
     private final AiPipelineClient aiClient;
     private final AiImageFetcher imageFetcher;
     private final EditionPipelineStore store;
+    private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${app.ai.poll-interval-ms:2000}")
@@ -151,5 +153,29 @@ public class EditionPipelineRunner {
         String modelUrl = (String) result.get("glb_url");
         String frontImageUrl = (String) result.get("front_image_url");
         store.applyModel(conceptId, modelUrl, frontImageUrl);
+
+        // 같은 job이 3D 변환 직후 Stage 5(큐레이션)까지 이어서 실행해 result.curation에 실어 준다
+        // (AI 저장소 ai_pipeline/api/endpoints/full_pipeline.py의 run_after_selection 참고) —
+        // 우리가 /ai/v1/curation을 따로 호출할 필요가 없다.
+        applyCuration(conceptId, result);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void applyCuration(Long conceptId, Map<String, Object> result) {
+        Map<String, Object> curation = (Map<String, Object>) result.get("curation");
+        if (curation == null) {
+            return;
+        }
+        List<Map<String, Object>> rawRecommendations =
+                (List<Map<String, Object>>) curation.getOrDefault("recommendations", List.of());
+        List<PipelineEvents.CurationReceived.RecommendationPayload> recommendations = rawRecommendations.stream()
+                .map(r -> new PipelineEvents.CurationReceived.RecommendationPayload(
+                        (String) r.get("product_id"),
+                        (String) r.get("name_kr"),
+                        (String) r.get("reason"),
+                        (String) r.get("tagline"),
+                        (String) r.get("image_url")))
+                .toList();
+        eventPublisher.publishEvent(new PipelineEvents.CurationReceived(conceptId, recommendations));
     }
 }
