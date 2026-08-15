@@ -4,16 +4,15 @@ package com.memory_atelier.user.application;
 import com.memory_atelier.global.exception.CustomException;
 import com.memory_atelier.global.exception.ErrorCode;
 import com.memory_atelier.image.S3Uploader;
-import com.memory_atelier.user.api.dto.request.UserSaveRequestDto;
 import com.memory_atelier.user.api.dto.request.UserUpdateRequestDto;
 import com.memory_atelier.user.api.dto.response.UserInfoResponseDto;
 import com.memory_atelier.user.api.dto.response.UserListResponseDto;
+import com.memory_atelier.user.api.dto.response.UserPublicProfileResponseDto;
 import com.memory_atelier.user.domain.User;
 import com.memory_atelier.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,7 +25,6 @@ import java.io.IOException;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
     private final S3Uploader s3Uploader;
 
     @Transactional
@@ -62,17 +60,6 @@ public class UserService {
         return UserInfoResponseDto.from(user);
     }
 
-    // 회원가입
-    @Transactional
-    public Long signUp(UserSaveRequestDto requestDto) {
-        if (userRepository.existsByEmail(requestDto.getEmail())) {
-            throw new CustomException(ErrorCode.DUPLICATE_EMAIL);
-        }
-
-        User user = requestDto.toEntity(passwordEncoder);
-        return userRepository.save(user).getUserId();
-    }
-
     /*
      *단건 회원 조회
      * 탈퇴한 회원이거나 존재하지 않는 회원이면 동일하게 USER_NOT_FOUND(404) 반환
@@ -95,6 +82,11 @@ public class UserService {
         return UserListResponseDto.from(userPage);
     }
 
+    // 공개 프로필 단건 조회 (닉네임/프로필사진만 노출, 탈퇴 회원 제외)
+    public UserPublicProfileResponseDto getPublicProfile(Long userId) {
+        User user = findActiveUserById(userId);
+        return UserPublicProfileResponseDto.from(user);
+    }
 
     // 회원 정보 수정
     @Transactional

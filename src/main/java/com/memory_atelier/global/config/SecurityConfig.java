@@ -35,7 +35,9 @@ public class SecurityConfig {
             "/auth/reissue",
             "/auth/kakao/**",
             "/auth/google/**",
-            "/auth/naver/**"
+            "/auth/naver/**",
+            "/search",
+            "/*/public-profile"
     };
 
     private static final String[] DOCS_ENDPOINTS = {
