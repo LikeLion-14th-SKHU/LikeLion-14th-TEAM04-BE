@@ -1,5 +1,6 @@
 package com.memory_atelier.global.config;
 
+import com.memory_atelier.auth.JwtFilter;
 import com.memory_atelier.global.security.RestAccessDeniedHandler;
 import com.memory_atelier.global.security.RestAuthenticationEntryPoint;
 import java.util.List;
@@ -14,7 +15,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -24,7 +28,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
-
+            "/auth/login",
+            "/auth/signup",
+            "/auth/reissue",
+            "/auth/kakao/**",
+            "/auth/google/**",
+            "/auth/naver/**"
     };
 
     private static final String[] DOCS_ENDPOINTS = {
@@ -38,13 +47,16 @@ public class SecurityConfig {
     private final List<String> allowedOrigins;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
+    private final JwtFilter jwtFilter;
 
     public SecurityConfig(@Value("${app.cors.allowed-origins}") List<String> allowedOrigins,
                           RestAuthenticationEntryPoint authenticationEntryPoint,
-                          RestAccessDeniedHandler accessDeniedHandler) {
+                          RestAccessDeniedHandler accessDeniedHandler,
+                          JwtFilter jwtFilter) {
         this.allowedOrigins = allowedOrigins;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.jwtFilter = jwtFilter;
     }
 
     @Bean
@@ -78,6 +90,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/logout").authenticated()
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated())
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
@@ -93,5 +106,10 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
