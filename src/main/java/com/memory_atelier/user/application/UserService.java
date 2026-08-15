@@ -29,7 +29,7 @@ public class UserService {
 
     @Transactional
     public UserInfoResponseDto updateProfileImage(Long userId, MultipartFile file)  {
-        User user = findActiveUserById(userId);
+        User user = getActiveUser(userId);
 
         String oldImageUrl = user.getProfileImageUrl();
 
@@ -60,13 +60,10 @@ public class UserService {
         return UserInfoResponseDto.from(user);
     }
 
-    /*
-     *단건 회원 조회
-     * 탈퇴한 회원이거나 존재하지 않는 회원이면 동일하게 USER_NOT_FOUND(404) 반환
-     * -> 탈퇴 여부를 클라이언트에게 노출하지 않기 위한 정책
-     */
+     // 단건 회원 조회
+     // 탈퇴한 회원이거나 존재하지 않는 회원이면 동일하게 USER_NOT_FOUND(404) 반환 -> 탈퇴 여부를 클라이언트에게 노출하지 않기 위한 정책
     public UserInfoResponseDto getUserInfo(Long userId) {
-        User user = findActiveUserById(userId);
+        User user = getActiveUser(userId);
         return UserInfoResponseDto.from(user);
     }
 
@@ -84,14 +81,14 @@ public class UserService {
 
     // 공개 프로필 단건 조회 (닉네임/프로필사진만 노출, 탈퇴 회원 제외)
     public UserPublicProfileResponseDto getPublicProfile(Long userId) {
-        User user = findActiveUserById(userId);
+        User user = getActiveUser(userId);
         return UserPublicProfileResponseDto.from(user);
     }
 
     // 회원 정보 수정
     @Transactional
     public UserInfoResponseDto updateUser(Long userId, UserUpdateRequestDto requestDto) {
-        User user = findActiveUserById(userId);
+        User user = getActiveUser(userId);
         user.update(requestDto);
         return  UserInfoResponseDto.from(user);
     }
@@ -99,11 +96,12 @@ public class UserService {
     // 회원 탈퇴
     @Transactional
     public void withdraw(Long userId) {
-        User user = findActiveUserById(userId);
+        User user = getActiveUser(userId);
         user.withdraw();
     }
 
-    private User findActiveUserById(Long userId) {
+    // 탈퇴한 회원이거나 존재하지 않는 회원이면 동일하게 USER_NOT_FOUND(404) — 탈퇴 여부 비노출 정책
+    public User getActiveUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 

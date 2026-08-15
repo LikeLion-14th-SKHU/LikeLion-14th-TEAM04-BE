@@ -23,7 +23,10 @@ public record UserInfoResponseDto(
         boolean emailVerified,
 
         @Schema(description = "권한", example = "USER", allowableValues = {"USER", "ADMIN"})
-        String role
+        String role,
+
+        @Schema(description = "보유 크레딧", example = "100")
+        int credit
 ) {
     public static UserInfoResponseDto from(User user)
     {
@@ -33,7 +36,8 @@ public record UserInfoResponseDto(
                 user.getNickname(),
                 user.getProfileImageUrl(),
                 user.isEmailVerified(),
-                user.getRole().name()
+                user.getRole().name(),
+                user.getCredit()
         );
 
     }

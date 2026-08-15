@@ -51,6 +51,11 @@ public class User extends BaseTimeEntity {
     @Column(length = 20, nullable = false)
     private Role role = Role.USER;
 
+    // 콘셉트 열람·에디션 재생성에 쓰는 잔액. 조회·표시용으로만 읽는다
+    // 실제 차감은 CreditService가 조건부 UPDATE로 원자적으로 하므로, 이 필드를 읽어서 빼면 안 된다
+    @Column(nullable = false)
+    private int credit = 0;
+
     private LocalDateTime deletedAt;
 
     @Column(nullable = false)
@@ -75,6 +80,12 @@ public class User extends BaseTimeEntity {
 
     public void updateProfileImage(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+
+    // 신규가입 지급·관리자 지급 공통 진입점
+    // 차감은 이 메서드가 아니라 CreditService가 담당한다
+    public void grantCredit(int amount) {
+        this.credit += amount;
     }
 
     public void withdraw() {

@@ -50,7 +50,11 @@ public enum ErrorCode {
     // Memory 도메인
     MEMORY_NOT_FOUND(HttpStatus.NOT_FOUND, "M_404", "존재하지 않는 추억입니다."),
     INVALID_ITEM_OPTION(HttpStatus.BAD_REQUEST, "M_400", "선택할 수 없는 항목입니다."),
-    REFINED_STORY_NOT_READY(HttpStatus.CONFLICT, "M_409", "AI로 다듬은 사연이 아직 없습니다. 먼저 분석을 실행해 주세요.");
+    REFINED_STORY_NOT_READY(HttpStatus.CONFLICT, "M_409", "AI로 다듬은 사연이 아직 없습니다. 먼저 분석을 실행해 주세요."),
+
+    // 크레딧
+    INSUFFICIENT_CREDIT(HttpStatus.CONFLICT, "C_409", "크레딧이 부족합니다."),
+    INVALID_CREDIT_AMOUNT(HttpStatus.BAD_REQUEST, "C_400", "크레딧 수량은 1 이상이어야 합니다.");
 
     private final HttpStatus status;
     private final String code;
