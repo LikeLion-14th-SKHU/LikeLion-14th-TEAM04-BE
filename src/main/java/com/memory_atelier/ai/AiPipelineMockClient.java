@@ -15,13 +15,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-/**
- * AI 파이프라인 서버가 로컬에 없어도 다른 도메인(Memory, Edition Generation)이 개발·테스트할 수
- * 있도록 하는 가짜 클라이언트. {@code ai.pipeline.client=mock}일 때만 활성화된다.
- *
- * <p>상태 전이는 실제 서버와 동일하게 running → awaiting_selection → (select) → running → done을
- * 따르되, 각 running 구간은 {@code ai.pipeline.mock-poll-count}번 폴링하면 다음 상태로 넘어간다.
- */
+// AI 파이프라인 서버가 로컬에 없어도 다른 도메인(Memory, Edition Generation)이 개발·테스트할 수 있도록 하는 가짜 클라이언트
+// {@code ai.pipeline.client=mock}일 때만 활성화된다
+// 상태 전이는 실제 서버와 동일하게 running → awaiting_selection → (select) → running → done을 따르되,
+// 각 running 구간은 {@code ai.pipeline.mock-poll-count}번 폴링하면 다음 상태로 넘어간다
 @Component
 @ConditionalOnProperty(name = "ai.pipeline.client", havingValue = "mock")
 public class AiPipelineMockClient implements AiPipelineClient {
@@ -59,7 +56,11 @@ public class AiPipelineMockClient implements AiPipelineClient {
             return new JobInfoResponseDto(
                     jobId, JobInfoResponseDto.STATUS_AWAITING_SELECTION, null,
                     "후보 중 1개를 선택하세요 (mock)",
-                    Map.of("candidates", mockCandidates(jobId)),
+                    Map.of(
+                            "analysis", Map.of(
+                                    "edition_name_candidates", List.of("Mock Heritage Edition", "Mock Memory Edition"),
+                                    "certificate_text", "mock 보증서 문구"),
+                            "candidates", mockCandidates(jobId)),
                     null, now, now);
         }
 
@@ -87,11 +88,38 @@ public class AiPipelineMockClient implements AiPipelineClient {
         return new JobAcceptedResponseDto(jobId);
     }
 
+    private static final List<String> RISK_PROFILES = List.of("safe", "balanced", "bold");
+    private static final List<Integer> MOCK_SCORES = List.of(82, 95, 88); // 동점 처리 확인용으로 순서를 일부러 섞음
+
     private List<Map<String, Object>> mockCandidates(String jobId) {
         return List.of(
-                Map.of("index", 0, "image_url", "https://mock.local/" + jobId + "/safe.png"),
-                Map.of("index", 1, "image_url", "https://mock.local/" + jobId + "/balanced.png"),
-                Map.of("index", 2, "image_url", "https://mock.local/" + jobId + "/bold.png"));
+                mockCandidate(jobId, 0),
+                mockCandidate(jobId, 1),
+                mockCandidate(jobId, 2));
+    }
+
+    private Map<String, Object> mockCandidate(String jobId, int index) {
+        String riskProfile = RISK_PROFILES.get(index);
+        // category_reason은 실제 응답에서 null일 수 있는 필드라 Map.of()(null 값 금지)로는 못 만든다.
+        Map<String, Object> spec = new java.util.HashMap<>();
+        spec.put("concept_name", "Mock " + riskProfile + " 컨셉");
+        spec.put("category", "가방");
+        spec.put("category_reason", null);
+        spec.put("base_product", "mock-product-" + index);
+        spec.put("risk_profile", riskProfile);
+        spec.put("intervention_level", index + 1);
+        spec.put("creation_method", "mock 재창조 방식");
+        spec.put("applied_elements", List.of(Map.of(
+                "from_element", "옷의 패턴",
+                "to_element", "제품 플랩",
+                "reason", "mock 근거")));
+        spec.put("image_prompt", "mock prompt");
+
+        return Map.of(
+                "index", index,
+                "spec", spec,
+                "image_url", "https://mock.local/" + jobId + "/" + riskProfile + ".png",
+                "gate", Map.of("passed", true, "score", MOCK_SCORES.get(index), "fail_reasons", List.of()));
     }
 
     private static final class MockJob {

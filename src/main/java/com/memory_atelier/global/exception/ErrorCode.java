@@ -54,7 +54,11 @@ public enum ErrorCode {
 
     // 크레딧
     INSUFFICIENT_CREDIT(HttpStatus.CONFLICT, "C_409", "크레딧이 부족합니다."),
-    INVALID_CREDIT_AMOUNT(HttpStatus.BAD_REQUEST, "C_400", "크레딧 수량은 1 이상이어야 합니다.");
+    INVALID_CREDIT_AMOUNT(HttpStatus.BAD_REQUEST, "C_400", "크레딧 수량은 1 이상이어야 합니다."),
+
+    // Edition Generation 도메인
+    EDITION_NOT_FOUND(HttpStatus.NOT_FOUND, "E_404", "존재하지 않는 에디션 생성 배치입니다."),
+    MEMORY_ANALYSIS_NOT_READY(HttpStatus.CONFLICT, "E_409", "AI 분석이 완료된 추억만 에디션을 생성할 수 있습니다.");
 
     private final HttpStatus status;
     private final String code;

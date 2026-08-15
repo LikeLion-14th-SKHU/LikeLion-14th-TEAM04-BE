@@ -28,7 +28,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Memory extends BaseTimeEntity {
 
-    /** 다듬은 사연·내부 해석 컬럼 길이. 원문(500)보다 넉넉한 건 맞춤법 정리로 길이가 늘 수 있어서다. */
+    // 다듬은 사연·내부 해석 컬럼 길이. 원문(500)보다 넉넉한 건 맞춤법 정리로 길이가 늘 수 있어서다
     public static final int REFINED_STORY_MAX_LENGTH = 1000;
 
     @Id
@@ -49,7 +49,7 @@ public class Memory extends BaseTimeEntity {
 
     private String categorySub;
 
-    /** 사용자가 고른 재질. {@link ItemOptions#MATERIAL_UNSELECTED}면 Vision 추정값을 채택한다. */
+    // 사용자가 고른 재질. {@link ItemOptions#MATERIAL_UNSELECTED}면 Vision 추정값을 채택한다
     private String materialUser;
 
     @Convert(converter = StringListConverter.class)
@@ -59,7 +59,7 @@ public class Memory extends BaseTimeEntity {
     @Column(nullable = false, length = 500)
     private String story;
 
-    /** 목표 MCM 에디션 카테고리. null이면 AI가 후보마다 카테고리를 자동 제안한다. */
+    // 목표 MCM 에디션 카테고리. null이면 AI가 후보마다 카테고리를 자동 제안한다
     private String editionCategory;
 
     // ── Stage 1 분석 결과 ────────────────────────────────────
@@ -72,7 +72,7 @@ public class Memory extends BaseTimeEntity {
 
     private String materialEstimate;
 
-    /** 병합 규칙(사용자 선택 우선, '선택안함'이면 Vision 추정값) 적용 결과. */
+    // 병합 규칙(사용자 선택 우선, '선택안함'이면 Vision 추정값) 적용 결과
     private String materialFinal;
 
     @Convert(converter = StringListConverter.class)
@@ -83,11 +83,11 @@ public class Memory extends BaseTimeEntity {
     @Column(length = 500)
     private List<String> vibeKeywords = List.of();
 
-    /** {@code story.polished} — 공유용으로 다듬은 사연. */
+    // {@code story.polished} — 공유용으로 다듬은 사연
     @Column(length = REFINED_STORY_MAX_LENGTH)
     private String storyRefined;
 
-    /** {@code story.interpretation} — 내부용 해석. 응답 DTO에 실어 노출하지 않는다. */
+    // {@code story.interpretation} — 내부용 해석. 응답 DTO에 실어 노출하지 않는다
     @Column(length = REFINED_STORY_MAX_LENGTH)
     private String storyInterpretation;
 
@@ -123,6 +123,21 @@ public class Memory extends BaseTimeEntity {
         return this.user.getUserId().equals(userId);
     }
 
+    public Long getOwnerId() {
+        return this.user.getUserId();
+    }
+
+    // 에디션 생성 배치에 스냅샷으로 고정할 사연 텍스트
+    public String resolveStoryForGeneration() {
+        return (useRefinedStory && storyRefined != null) ? storyRefined : story;
+    }
+
+    // AI 분석(Stage 1)이 완료됐는지
+    // Edition Generation은 이 상태를 전제로 한다
+    public boolean isAnalyzed() {
+        return materialFinal != null;
+    }
+
     public void update(
             String photoUrl,
             String categoryMain,
@@ -144,10 +159,9 @@ public class Memory extends BaseTimeEntity {
         clearAnalysis();
     }
 
-    /**
-     * Stage 1 결과를 반영한다. 재질은 사용자 선택값을 우선 채택하고 '선택안함'일 때만 Vision
-     * 추정값을 쓴다. 상태는 사용자 토글과 Vision 단서의 합집합이며, 순서를 유지한 채 중복을 없앤다.
-     */
+    // Stage 1 결과를 반영한다
+    // 재질은 사용자 선택값을 우선 채택하고 '선택안함'일 때만 Vision 추정값을 쓴다
+    // 상태는 사용자 토글과 Vision 단서의 합집합이며, 순서를 유지한 채 중복을 없앤다
     public void applyAnalysis(AnalysisResultDto analysis) {
         AnalysisResultDto.Visual visual = analysis.visual();
         AnalysisResultDto.Story story = analysis.story();
@@ -167,7 +181,7 @@ public class Memory extends BaseTimeEntity {
         this.useRefinedStory = useRefinedStory;
     }
 
-    /** 재질 판정을 Vision에 위임한 경우인지. */
+    // 재질 판정을 Vision에 위임한 경우인지
     public boolean isMaterialUnknown() {
         return materialUser == null || materialUser.isBlank() || ItemOptions.MATERIAL_UNSELECTED.equals(materialUser);
     }
