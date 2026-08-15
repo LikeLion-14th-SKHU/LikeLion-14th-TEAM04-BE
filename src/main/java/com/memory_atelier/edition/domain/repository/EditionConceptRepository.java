@@ -14,6 +14,10 @@ public interface EditionConceptRepository extends JpaRepository<EditionConcept, 
 
     List<EditionConcept> findAllByGenerationGenerationIdInOrderByDisplayOrder(List<Long> generationIds);
 
+    // 확정 범위는 생성 배치 단위다
+    // 새로 확정하기 전에 같은 배치의 이전 확정을 해제해야 한다
+    List<EditionConcept> findAllByGenerationGenerationIdAndIsFinalTrue(Long generationId);
+
     // 소유권 확인은 concept → generation → memory → user를 타고 올라가므로, 지연 로딩이면 매번 3번 더 조회한다
     @Query("select c from EditionConcept c "
             + "join fetch c.generation g join fetch g.memory m join fetch m.user "

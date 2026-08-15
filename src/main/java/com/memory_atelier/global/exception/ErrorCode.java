@@ -63,7 +63,12 @@ public enum ErrorCode {
     // Edition Concept 도메인
     CONCEPT_NOT_FOUND(HttpStatus.NOT_FOUND, "EC_404", "존재하지 않는 콘셉트입니다."),
     CONCEPT_ALREADY_UNLOCKED(HttpStatus.CONFLICT, "EC_409", "이미 열람 가능한 콘셉트입니다."),
-    CONCEPT_NOT_READY(HttpStatus.CONFLICT, "EC_409-2", "아직 이미지가 준비되지 않은 콘셉트입니다.");
+    CONCEPT_NOT_READY(HttpStatus.CONFLICT, "EC_409-2", "아직 이미지가 준비되지 않은 콘셉트입니다."),
+    EDITION_CONCEPT_LOCKED(HttpStatus.CONFLICT, "EC_409-3", "잠긴 콘셉트는 확정할 수 없습니다."),
+
+    // Certificate 도메인
+    CERTIFICATE_ALREADY_ISSUED(HttpStatus.CONFLICT, "CT_409", "이미 이 생성 배치에서 보증서가 발급되었습니다."),
+    CERTIFICATE_NOT_FOUND(HttpStatus.NOT_FOUND, "CT_404", "발급된 보증서가 없습니다.");
 
     private final HttpStatus status;
     private final String code;

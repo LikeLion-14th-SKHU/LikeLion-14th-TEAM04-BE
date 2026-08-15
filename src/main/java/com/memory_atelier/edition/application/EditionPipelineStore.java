@@ -16,11 +16,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 파이프라인 실행 중 DB 반영만 짧게 끊어 커밋하는 곳. 외부 호출(AI 서버, 최대 수십 초)은 여기
- * 밖에서 하고, 결과 반영만 {@code REQUIRES_NEW}로 짧게 커밋한다 — 긴 호출을 트랜잭션으로 감싸면
- * 그동안 DB 커넥션이 묶여 커넥션 풀이 금방 마른다.
- */
+// 파이프라인 실행 중 DB 반영만 짧게 끊어 커밋하는 곳
+// 외부 호출(AI 서버, 최대 수십 초)은 여기 밖에서 하고, 결과 반영만 {@code REQUIRES_NEW}로 짧게 넘긴다
 @Component
 @RequiredArgsConstructor
 public class EditionPipelineStore {
@@ -106,6 +103,30 @@ public class EditionPipelineStore {
     public void failAllConcepts(Long generationId) {
         conceptRepository.findAllByGenerationGenerationIdOrderByDisplayOrder(generationId)
                 .forEach(EditionConcept::markFailed);
+    }
+
+    /**
+     * 3D 변환 호출에 필요한 값만 뽑아서 넘긴다. {@code candidateIndex}는 Stage 2가 매긴 원래
+     * 인덱스와 대응해야 하는데, 콘셉트를 만들 때 {@code displayOrder}를 1부터 그 인덱스+1로
+     * 매겼으므로(생성 순서 = 후보 순서) 거꾸로 -1하면 된다.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public ModelConversionInput loadModelConversionInput(Long conceptId) {
+        EditionConcept concept = getConcept(conceptId);
+        return new ModelConversionInput(concept.getGeneration().getJobId(), concept.getDisplayOrder() - 1);
+    }
+
+    public record ModelConversionInput(String jobId, int candidateIndex) {
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void applyModel(Long conceptId, String modelUrl, String frontImageUrl) {
+        getConcept(conceptId).applyModel(modelUrl, frontImageUrl);
+    }
+
+    private EditionConcept getConcept(Long conceptId) {
+        return conceptRepository.findById(conceptId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CONCEPT_NOT_FOUND));
     }
 
     /** 이미지가 나온 콘셉트 중 품질 점수가 가장 높은 1장만 무료로 연다. 동점이면 순번이 빠른 쪽. */
