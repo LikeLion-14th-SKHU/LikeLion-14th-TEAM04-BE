@@ -11,6 +11,7 @@ import com.memory_atelier.auth.domain.RefreshToken;
 import com.memory_atelier.auth.domain.RefreshTokenRepository;
 import com.memory_atelier.global.exception.CustomException;
 import com.memory_atelier.global.exception.ErrorCode;
+import com.memory_atelier.user.application.CreditPolicy;
 import com.memory_atelier.user.domain.Provider;
 import com.memory_atelier.user.domain.User;
 import com.memory_atelier.user.domain.repository.UserRepository;
@@ -30,6 +31,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final CreditPolicy creditPolicy;
 
     @Value("${jwt.refresh-expiration}")
     private long refreshExpiration;
@@ -48,6 +50,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.password()))
                 .provider(Provider.LOCAL)
                 .build();
+        user.grantCredit(creditPolicy.signupGrant());
 
         userRepository.save(user);
     }

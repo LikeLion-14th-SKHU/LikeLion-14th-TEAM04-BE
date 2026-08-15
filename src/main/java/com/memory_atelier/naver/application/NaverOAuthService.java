@@ -8,6 +8,7 @@ import com.memory_atelier.global.exception.CustomException;
 import com.memory_atelier.global.exception.ErrorCode;
 import com.memory_atelier.naver.api.dto.response.NaverTokenResponse;
 import com.memory_atelier.naver.api.dto.response.NaverUserInfoResponse;
+import com.memory_atelier.user.application.CreditPolicy;
 import com.memory_atelier.user.domain.Provider;
 import com.memory_atelier.user.domain.User;
 import com.memory_atelier.user.domain.repository.UserRepository;
@@ -28,6 +29,7 @@ public class NaverOAuthService {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final CreditPolicy creditPolicy;
 
     private final RestClient restClient = RestClient.create();
 
@@ -61,14 +63,16 @@ public class NaverOAuthService {
         String nickname = userInfoResponse.getNickname();
 
         User user = userRepository.findByEmailAndProvider(email, Provider.NAVER)
-                .orElseGet(() -> userRepository.save(
-                        User.builder()
-                                .nickname(nickname)
-                                .email(email)
-                                .provider(Provider.NAVER)
-                                .password(null)
-                                .build()
-                ));
+                .orElseGet(() -> {
+                    User newUser = User.builder()
+                            .nickname(nickname)
+                            .email(email)
+                            .provider(Provider.NAVER)
+                            .password(null)
+                            .build();
+                    newUser.grantCredit(creditPolicy.signupGrant());
+                    return userRepository.save(newUser);
+                });
 
         String accessToken = jwtUtil.generateToken(user.getUserId(), user.getRole());
         String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());

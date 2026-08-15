@@ -1,7 +1,9 @@
 package com.memory_atelier.user.api;
 
+import com.memory_atelier.user.api.dto.request.GrantCreditRequestDto;
 import com.memory_atelier.user.api.dto.request.UserUpdateRequestDto;
 import com.memory_atelier.user.api.dto.response.UserInfoResponseDto;
+import com.memory_atelier.user.application.CreditService;
 import com.memory_atelier.user.application.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminUserController {
 
     private final UserService userService;
+    private final CreditService creditService;
 
     @GetMapping("/{userId}")
     @Operation(
@@ -57,5 +60,19 @@ public class AdminUserController {
     ) {
         userService.withdraw(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{userId}/credits")
+    @Operation(
+            summary = "크레딧 지급 (관리자)",
+            description = "지정한 회원의 잔액에 크레딧을 더합니다. ADMIN 권한이 필요합니다. "
+                    + "차감은 콘셉트 열람·에디션 재생성에서 자동으로 이뤄지며 별도 API가 없습니다. 응답의 credit이 지급 후 잔액입니다."
+    )
+    public ResponseEntity<UserInfoResponseDto> grantCredit(
+            @Parameter(description = "지급 대상 회원 id", example = "1")
+            @PathVariable Long userId,
+            @Valid @RequestBody GrantCreditRequestDto requestDto
+    ) {
+        return ResponseEntity.ok(UserInfoResponseDto.from(creditService.grant(userId, requestDto.amount())));
     }
 }
