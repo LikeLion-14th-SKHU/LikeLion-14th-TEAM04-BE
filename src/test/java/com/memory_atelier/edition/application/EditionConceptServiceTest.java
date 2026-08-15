@@ -14,6 +14,7 @@ import com.memory_atelier.user.application.CreditPolicy;
 import com.memory_atelier.user.domain.Provider;
 import com.memory_atelier.user.domain.User;
 import com.memory_atelier.user.domain.repository.UserRepository;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -156,6 +157,71 @@ class EditionConceptServiceTest {
     @Test
     void 다른_사용자의_콘셉트를_열려하면_존재하지_않는_것처럼_거절된다() {
         assertThatThrownBy(() -> editionConceptService.unlock(otherUserId, readyConceptId))
+                .isInstanceOf(CustomException.class);
+    }
+
+    @Test
+    void 열려있고_준비된_콘셉트를_확정하면_최종_확정된다() {
+        EditionConcept concept = conceptRepository.findById(readyConceptId).orElseThrow();
+        concept.unlock();
+        concept.getGeneration().applyNarrative(List.of("Heritage Edition"), "보증서 문구");
+
+        EditionConcept finalized = editionConceptService.markFinal(ownerId, readyConceptId);
+
+        assertThat(finalized.isFinal()).isTrue();
+    }
+
+    @Test
+    void 잠긴_콘셉트는_확정할_수_없다() {
+        assertThatThrownBy(() -> editionConceptService.markFinal(ownerId, readyConceptId))
+                .isInstanceOf(CustomException.class);
+    }
+
+    @Test
+    void 이미지가_없는_콘셉트는_열려있어도_확정할_수_없다() {
+        EditionConcept concept = conceptRepository.findById(pendingConceptId).orElseThrow();
+        concept.unlock();
+
+        assertThatThrownBy(() -> editionConceptService.markFinal(ownerId, pendingConceptId))
+                .isInstanceOf(CustomException.class);
+    }
+
+    @Test
+    void 에디션명이_아직_없으면_확정할_수_없다() {
+        EditionConcept concept = conceptRepository.findById(readyConceptId).orElseThrow();
+        concept.unlock();
+
+        assertThatThrownBy(() -> editionConceptService.markFinal(ownerId, readyConceptId))
+                .isInstanceOf(CustomException.class);
+    }
+
+    @Test
+    void 같은_배치에서_새로_확정하면_이전_확정은_해제된다() {
+        EditionGeneration generation = generationRepository.findById(
+                conceptRepository.findById(readyConceptId).orElseThrow().getGeneration().getGenerationId())
+                .orElseThrow();
+        generation.applyNarrative(List.of("Heritage Edition"), "보증서 문구");
+
+        EditionConcept first = conceptRepository.findById(readyConceptId).orElseThrow();
+        first.unlock();
+        EditionConcept second = conceptRepository.save(EditionConcept.builder()
+                .generation(generation)
+                .displayOrder(3)
+                .build());
+        second.applyConceptImage(
+                "가방", null, "컨셉명2", "bold", 3, "베이스2", "방식2", null, "https://example.com/concept2.png", 90);
+        second.unlock();
+
+        editionConceptService.markFinal(ownerId, first.getConceptId());
+        editionConceptService.markFinal(ownerId, second.getConceptId());
+
+        assertThat(conceptRepository.findById(first.getConceptId()).orElseThrow().isFinal()).isFalse();
+        assertThat(conceptRepository.findById(second.getConceptId()).orElseThrow().isFinal()).isTrue();
+    }
+
+    @Test
+    void 다른_사용자의_콘셉트를_확정하려하면_존재하지_않는_것처럼_거절된다() {
+        assertThatThrownBy(() -> editionConceptService.markFinal(otherUserId, readyConceptId))
                 .isInstanceOf(CustomException.class);
     }
 }

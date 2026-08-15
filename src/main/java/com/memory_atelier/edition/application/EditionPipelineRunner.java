@@ -15,13 +15,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * 생성 배치 하나를 끝까지 돌린다. 외부 호출(파이프라인 실행·폴링)은 트랜잭션 밖에서 하고,
- * DB 반영만 {@link EditionPipelineStore}로 짧게 끊어 커밋한다.
- *
- * <p>여기서 예외를 밖으로 던지지 않는다 — 호출자가 비동기 스레드라 받을 사람이 없고, 사용자에게는
- * 예외가 아니라 콘셉트 상태로 실패를 알려야 하기 때문이다.
- */
+// 생성 배치 하나를 끝까지 돌린다
+// 외부 호출(파이프라인 실행·폴링)은 트랜잭션 밖에서 하고, DB 반영만 {@link EditionPipelineStore}로 짧게 끊어 커밋한다
+// 여기서 예외를 밖으로 던지지 않는다
+// 호출자가 비동기 스레드라 받을 사람이 없고, 사용자에게는 예외가 아니라 콘셉트 상태로 실패를 알려야 하기 때문이다
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -111,5 +108,48 @@ public class EditionPipelineRunner {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    // 확정된 콘셉트 한 장의 3D 변환
+    // 우리 AI 서버는 별도 3D 전용 엔드포인트가 없고, {@code awaiting_selection} 상태에서 멈춰 있던 job을 {@code selectCandidate}로 재개하면 이어서 3D까지 진행한다
+    // 실패해도 콘셉트 상태는 건드리지 않는다
+    // 카드는 2D 콘셉트 이미지로 계속 보여줄 수 있어서 "실패"로 확정할 이유가 없다
+    @Async("editionPipelineExecutor")
+    public void runModelConversion(Long conceptId) {
+        try {
+            EditionPipelineStore.ModelConversionInput input = store.loadModelConversionInput(conceptId);
+            aiClient.selectCandidate(input.jobId(), input.candidateIndex());
+            pollUntilModelDone(conceptId, input.jobId());
+        } catch (RuntimeException e) {
+            log.error("3D 모델 변환 실패: conceptId={}", conceptId, e);
+        }
+    }
+
+    private void pollUntilModelDone(Long conceptId, String jobId) {
+        for (int attempt = 0; attempt < maxPollAttempts; attempt++) {
+            sleep();
+
+            JobInfoResponseDto job = aiClient.getJob(jobId);
+            if (job.isDone()) {
+                applyModelResult(conceptId, job);
+                return;
+            }
+            if (job.isFailed()) {
+                log.warn("3D 변환 파이프라인이 실패 상태를 반환함: conceptId={}, error={}", conceptId, job.error());
+                return;
+            }
+            // running이면 계속 폴링
+        }
+        log.warn("3D 변환 폴링 시간 초과: conceptId={}, jobId={}", conceptId, jobId);
+    }
+
+    private void applyModelResult(Long conceptId, JobInfoResponseDto job) {
+        Map<String, Object> result = job.result();
+        if (result == null) {
+            return;
+        }
+        String modelUrl = (String) result.get("glb_url");
+        String frontImageUrl = (String) result.get("front_image_url");
+        store.applyModel(conceptId, modelUrl, frontImageUrl);
     }
 }
