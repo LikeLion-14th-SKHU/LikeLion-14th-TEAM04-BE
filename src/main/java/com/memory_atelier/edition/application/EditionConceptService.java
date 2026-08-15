@@ -32,6 +32,13 @@ public class EditionConceptService {
         return concept;
     }
 
+    // 소유권 확인 없이 소유자까지 함께 로딩한다. 호출자가 공개 여부·소유 여부를 직접 판단해야
+    // 한다(좋아요·커뮤니티 피드에서 "공개된 카드이거나 본인 소유"를 가리는 데 사용)
+    public EditionConcept getConceptWithOwner(Long conceptId) {
+        return conceptRepository.findWithOwner(conceptId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CONCEPT_NOT_FOUND));
+    }
+
     // 크레딧을 써서 잠긴 콘셉트를 연다
     // 앞의 두 검사(이미 열림 / 이미지 미준비)는 흔한 경우를 빨리 걸러 크레딧을 아예 쓰지 않기 위한 것일 뿐, 그것만으로 동시 요청을 막지는 못한다
     // 같은 콘셉트에 두 요청이 동시에 오면 둘 다 이 검사를 통과하므로, 실제 반영은 조건부 UPDATE({@code unlockIfLocked})가 최종 관문이다.\
