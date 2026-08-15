@@ -68,7 +68,10 @@ public enum ErrorCode {
 
     // Certificate 도메인
     CERTIFICATE_ALREADY_ISSUED(HttpStatus.CONFLICT, "CT_409", "이미 이 생성 배치에서 보증서가 발급되었습니다."),
-    CERTIFICATE_NOT_FOUND(HttpStatus.NOT_FOUND, "CT_404", "발급된 보증서가 없습니다.");
+    CERTIFICATE_NOT_FOUND(HttpStatus.NOT_FOUND, "CT_404", "발급된 보증서가 없습니다."),
+
+    // Recommend 도메인
+    RECOMMENDATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RC_404", "아직 준비되지 않았거나 존재하지 않는 추천입니다.");
 
     private final HttpStatus status;
     private final String code;

@@ -73,8 +73,27 @@ public class AiPipelineMockClient implements AiPipelineClient {
                 jobId, JobInfoResponseDto.STATUS_DONE, null, null,
                 Map.of(
                         "glb_url", "https://mock.local/" + jobId + "/model.glb",
-                        "front_image_url", "https://mock.local/" + jobId + "/front.png"),
+                        "front_image_url", "https://mock.local/" + jobId + "/front.png",
+                        "curation", Map.of("recommendations", mockRecommendations())),
                 null, now, now);
+    }
+
+    // 3D 변환과 같은 job이 이어서 만들어 주는 Stage 5(큐레이션) mock — 실제 AI 서버도
+    // run_after_selection에서 이 두 산출물을 같은 done 응답에 함께 담아 준다
+    private List<Map<String, Object>> mockRecommendations() {
+        return List.of(
+                Map.of(
+                        "product_id", "mock-product-1",
+                        "name_kr", "목업 크로스백",
+                        "reason", "mock 큐레이션 이유 1",
+                        "tagline", "mock 태그라인 1",
+                        "image_url", "https://mock.local/products/mock-product-1.png"),
+                Map.of(
+                        "product_id", "mock-product-2",
+                        "name_kr", "목업 파우치",
+                        "reason", "mock 큐레이션 이유 2",
+                        "tagline", "mock 태그라인 2",
+                        "image_url", "https://mock.local/products/mock-product-2.png"));
     }
 
     @Override
