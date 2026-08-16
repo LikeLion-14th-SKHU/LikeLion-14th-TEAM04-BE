@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -21,6 +22,14 @@ public class S3Uploader {
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
+    // 업로드 자체는 항상 S3Config가 설정한 엔드포인트(내부 주소)로 나간다 — 여기 설정된 값은
+    // 응답에 실어 보내는 URL을 만들 때만 쓴다. 홈서버 구성에서 앱 컨테이너가 자기 자신의
+    // 공개 도메인으로 나갔다가 다시 들어오는 방식(NAT 헤어핀)은 가정용 공유기에서 안 되는
+    // 경우가 흔해서, 업로드 경로와 "사용자에게 보여주는 URL"을 분리해뒀다. 비어 있으면(기본값)
+    // 기존처럼 amazonS3.getUrl()이 만들어주는 주소를 그대로 쓴다
+    @Value("${cloud.aws.s3.public-url:}")
+    private String publicUrl;
+
     public String upload(MultipartFile file) throws IOException {
 
         String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
@@ -31,7 +40,16 @@ public class S3Uploader {
 
         amazonS3.putObject(bucket, fileName, file.getInputStream(), metadata);
 
-        return amazonS3.getUrl(bucket, fileName).toString();
+        return buildUrl(fileName);
+    }
+
+    private String buildUrl(String fileName) {
+        if (publicUrl == null || publicUrl.isBlank()) {
+            return amazonS3.getUrl(bucket, fileName).toString();
+        }
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+        String base = publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl;
+        return base + "/" + bucket + "/" + encodedFileName;
     }
 
     public void delete(String imageUrl) {
