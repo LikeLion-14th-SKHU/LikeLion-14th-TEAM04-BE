@@ -6,12 +6,20 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-if [ -f .env ]; then
-  set -a
-  # shellcheck disable=SC1091
-  source .env
-  set +a
+if [ ! -f .env ]; then
+  echo ".env가 없습니다. cp .env.example .env 로 만들고 채워주세요." >&2
+  exit 1
 fi
+
+# .env를 source하지 않는다 — DB_PASSWORD 등 다른 값에 백틱/$ 같은 셸 특수문자가 섞여
+# 있으면 source가 그걸 셸 코드로 해석하려다 깨진다(실제로 겪음). 여기서 진짜 필요한
+# 두 값만 텍스트로 그대로 뽑아 쓴다
+env_value() {
+  grep -E "^$1=" .env | tail -n1 | cut -d '=' -f2-
+}
+
+DOMAIN="$(env_value DOMAIN)"
+CERTBOT_EMAIL="$(env_value CERTBOT_EMAIL)"
 
 : "${DOMAIN:?".env에 DOMAIN을 설정하세요 (예: api.memory-atelier.store)"}"
 : "${CERTBOT_EMAIL:?".env에 CERTBOT_EMAIL을 설정하세요"}"
