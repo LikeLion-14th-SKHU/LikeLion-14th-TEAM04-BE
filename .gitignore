@@ -238,6 +238,9 @@ $RECYCLE.BIN/
 # yaml
 **/resources/application-*.yaml
 
+# docker-compose 배포 비밀값
+.env
+
 # Gradle build outputs
 .gradle/
 build/
