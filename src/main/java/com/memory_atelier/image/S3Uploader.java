@@ -40,7 +40,10 @@ public class S3Uploader {
         }
 
         try {
-            String fileName = imageUrl.substring(imageUrl.indexOf(".com/") + 5);
+            // 이 앱의 키는 항상 "UUID_원본파일명" 한 세그먼트뿐이라(하위 디렉터리 없음),
+            // URL 마지막 "/" 뒤를 그대로 키로 쓰면 AWS 가상호스팅 스타일(bucket.s3...amazonaws.com/key)과
+            // MinIO 등의 path-style(endpoint/bucket/key) 양쪽 다 스타일 무관하게 동작한다
+            String fileName = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
             String decodedFileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);
             amazonS3.deleteObject(bucket, decodedFileName);
         } catch (Exception e) {
