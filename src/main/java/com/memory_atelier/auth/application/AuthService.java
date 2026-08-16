@@ -56,6 +56,10 @@ public class AuthService {
     }
 
     // 로그인
+    // 리프레시 토큰 삭제·저장(쓰기)이 있으므로 클래스 기본값(readOnly=true)을 오버라이드해야 한다
+    // H2는 읽기 전용 커넥션에서도 쓰기를 조용히 허용해서 지금까지 안 드러났지만
+    // MySQL은 커넥션 자체를 read-only로 열어서 쓰기 시도 시 SQLException을 던진다
+    @Transactional
     public LoginResponseDto login(LoginRequestDto request) {
 
         User user = userRepository.findByEmailAndProvider(request.email(), Provider.LOCAL)
