@@ -12,14 +12,16 @@ public record MemorySaveRequestDto(
         @Schema(description = "옷/소품 사진 파일")
         MultipartFile photo,
 
-        @Schema(description = "카테고리 대분류. 의류 / 가방 / 악세사리", example = "가방")
+        @Schema(description = "카테고리 대분류. 상의 / 하의 / 원피스 / 아우터", example = "상의")
         @Size(max = 50, message = "카테고리 대분류는 50자를 넘을 수 없습니다.")
         String categoryMain,
 
         @Schema(
-                description = "카테고리 중분류(대분류에 종속). 의류: 니트/가디건/셔츠/자켓/원피스/후드티/블라우스/팬츠, "
-                        + "가방: 핸드백/토트백/백팩/클러치/트래블, 악세사리: 벨트/스카프/지갑/키링/헤어밴드",
-                example = "백팩")
+                description = "카테고리 중분류(대분류에 종속). 상의: 티셔츠/셔츠/블라우스/니트/맨투맨/후드티, "
+                        + "하의: 청바지/슬랙스/반바지/스커트/트레이닝팬츠, "
+                        + "원피스: 미니원피스/미디원피스/롱원피스/점프수트, "
+                        + "아우터: 자켓/코트/패딩/가디건/바람막이. 목록에 없는 값은 '직접입력'으로 자유 텍스트 입력",
+                example = "티셔츠")
         @Size(max = 50, message = "카테고리 중분류는 50자를 넘을 수 없습니다.")
         String categorySub,
 

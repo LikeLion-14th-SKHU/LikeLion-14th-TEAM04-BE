@@ -17,9 +17,10 @@ public final class ItemOptions {
     public static final String MATERIAL_UNSELECTED = "선택안함";
 
     private static final Map<String, List<String>> CATEGORIES = new LinkedHashMap<>(Map.of(
-            "의류", List.of("니트", "가디건", "셔츠", "자켓", "원피스", "후드티", "블라우스", "팬츠"),
-            "가방", List.of("핸드백", "토트백", "백팩", "클러치", "트래블"),
-            "악세사리", List.of("벨트", "스카프", "지갑", "키링", "헤어밴드")));
+            "상의", List.of("티셔츠", "셔츠", "블라우스", "니트", "맨투맨", "후드티"),
+            "하의", List.of("청바지", "슬랙스", "반바지", "스커트", "트레이닝팬츠"),
+            "원피스", List.of("미니원피스", "미디원피스", "롱원피스", "점프수트"),
+            "아우터", List.of("자켓", "코트", "패딩", "가디건", "바람막이")));
 
     private static final Set<String> MATERIALS = new LinkedHashSet<>(List.of(
             "데님", "가죽", "니트", "울", "면", "린넨", "벨벳", "레이스", MATERIAL_UNSELECTED));
@@ -54,13 +55,10 @@ public final class ItemOptions {
         if (!hasMain || !hasSub) {
             throw invalid("카테고리는 대분류와 중분류를 함께 선택해야 합니다.");
         }
-        List<String> subs = CATEGORIES.get(categoryMain);
-        if (subs == null) {
+        if (!CATEGORIES.containsKey(categoryMain)) {
             throw invalid("카테고리 대분류는 %s 중 하나여야 합니다.".formatted(String.join(" / ", CATEGORIES.keySet())));
         }
-        if (!subs.contains(categorySub)) {
-            throw invalid("'%s'의 중분류는 %s 중 하나여야 합니다.".formatted(categoryMain, String.join(" / ", subs)));
-        }
+        // 중분류는 제시된 목록 외에 '직접입력'으로 받은 자유 텍스트도 허용한다
     }
 
     private static void validateMaterial(String material) {

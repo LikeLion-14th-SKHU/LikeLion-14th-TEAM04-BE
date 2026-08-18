@@ -8,7 +8,7 @@ import java.util.List;
 // 값 검증(허용 카테고리·재질 등)은 이 인프라 계층이 아니라 이 DTO를 조립하는 도메인이 책임진다
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record UserInputDto(
-        // {main: "의류"|"가방"|"악세사리", sub: 대분류별 중분류}
+        // {main: "상의"|"하의"|"원피스"|"아우터", sub: 대분류별 중분류(자유 텍스트 직접입력 포함)}
         ClothingCategoryDto category,
 
         // "데님"|"가죽"|"니트"|"울"|"면"|"린넨"|"벨벳"|"레이스"|"선택안함"
