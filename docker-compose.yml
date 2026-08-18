@@ -132,6 +132,10 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    # /ai/static/ location이 host.docker.internal:8000(별도 compose 프로젝트인 AI 서버)로
+    # 프록시하므로, app과 마찬가지로 host-gateway 매핑이 필요하다
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   mysql-data:
