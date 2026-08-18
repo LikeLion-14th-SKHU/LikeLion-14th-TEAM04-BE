@@ -8,6 +8,7 @@ import com.memory_atelier.user.api.dto.request.UserUpdateRequestDto;
 import com.memory_atelier.user.api.dto.response.UserInfoResponseDto;
 import com.memory_atelier.user.api.dto.response.UserListResponseDto;
 import com.memory_atelier.user.api.dto.response.UserPublicProfileResponseDto;
+import com.memory_atelier.user.domain.CollectionTheme;
 import com.memory_atelier.user.domain.User;
 import com.memory_atelier.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -91,6 +92,22 @@ public class UserService {
         User user = getActiveUser(userId);
         user.update(requestDto);
         return  UserInfoResponseDto.from(user);
+    }
+
+    // 컬렉션 이름 변경
+    @Transactional
+    public User updateCollectionName(Long userId, String collectionName) {
+        User user = getActiveUser(userId);
+        user.updateCollectionName(collectionName);
+        return user;
+    }
+
+    // 컬렉션 테마 변경
+    @Transactional
+    public User updateCollectionTheme(Long userId, CollectionTheme theme) {
+        User user = getActiveUser(userId);
+        user.updateCollectionTheme(theme);
+        return user;
     }
 
     // 회원 탈퇴

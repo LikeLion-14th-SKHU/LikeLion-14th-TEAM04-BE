@@ -61,6 +61,13 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private boolean anonymized = false;
 
+    @Column(length = 30)
+    private String collectionName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    private CollectionTheme collectionTheme = CollectionTheme.WHITE;
+
     @Builder
     private User(Provider provider, String providerId, String nickname, String email, String password, String profileImageUrl) {
         this.provider = provider;
@@ -80,6 +87,14 @@ public class User extends BaseTimeEntity {
 
     public void updateProfileImage(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+
+    public void updateCollectionName(String collectionName) {
+        this.collectionName = collectionName;
+    }
+
+    public void updateCollectionTheme(CollectionTheme collectionTheme) {
+        this.collectionTheme = collectionTheme;
     }
 
     // 신규가입 지급·관리자 지급 공통 진입점

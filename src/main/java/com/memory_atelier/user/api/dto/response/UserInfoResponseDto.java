@@ -1,5 +1,6 @@
 package com.memory_atelier.user.api.dto.response;
 
+import com.memory_atelier.user.domain.CollectionTheme;
 import com.memory_atelier.user.domain.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -26,7 +27,13 @@ public record UserInfoResponseDto(
         String role,
 
         @Schema(description = "보유 크레딧", example = "100")
-        int credit
+        int credit,
+
+        @Schema(description = "컬렉션 이름. 설정하지 않았으면 null", example = "구름이의 옷장")
+        String collectionName,
+
+        @Schema(description = "컬렉션 테마", example = "IVORY")
+        CollectionTheme collectionTheme
 ) {
     public static UserInfoResponseDto from(User user)
     {
@@ -37,7 +44,9 @@ public record UserInfoResponseDto(
                 user.getProfileImageUrl(),
                 user.isEmailVerified(),
                 user.getRole().name(),
-                user.getCredit()
+                user.getCredit(),
+                user.getCollectionName(),
+                user.getCollectionTheme()
         );
 
     }
