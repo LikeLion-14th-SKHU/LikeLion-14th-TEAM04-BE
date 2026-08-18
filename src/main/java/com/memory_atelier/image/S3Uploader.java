@@ -1,7 +1,11 @@
 package com.memory_atelier.image;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
+import com.memory_atelier.global.exception.CustomException;
+import com.memory_atelier.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -58,15 +62,31 @@ public class S3Uploader {
         }
 
         try {
-            // 이 앱의 키는 항상 "UUID_원본파일명" 한 세그먼트뿐이라(하위 디렉터리 없음),
-            // URL 마지막 "/" 뒤를 그대로 키로 쓰면 AWS 가상호스팅 스타일(bucket.s3...amazonaws.com/key)과
-            // MinIO 등의 path-style(endpoint/bucket/key) 양쪽 다 스타일 무관하게 동작한다
-            String fileName = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
-            String decodedFileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);
-            amazonS3.deleteObject(bucket, decodedFileName);
+            amazonS3.deleteObject(bucket, extractKey(imageUrl));
         } catch (Exception e) {
             System.err.println("S3 파일 삭제 중 오류 발생:" + e.getMessage());
         }
+    }
+
+    // photoUrl에는 사용자에게 보여줄 공개 도메인 주소가 저장돼 있는데, 앱 컨테이너 자신이
+    // 그 공개 도메인으로 나갔다가 다시 들어오는 건(NAT 헤어핀) 홈서버 구성에서 흔히 막혀 있다.
+    // 그래서 그 URL을 HTTP로 재요청하지 않고, S3(MinIO) 내부 엔드포인트로 직접 내려받는다.
+    // {@link AiImageFetcher}가 AI 서버에 보낼 이미지를 가져올 때 쓴다
+    public byte[] downloadAsBytes(String imageUrl) {
+        String key = extractKey(imageUrl);
+        try (S3Object s3Object = amazonS3.getObject(bucket, key)) {
+            return s3Object.getObjectContent().readAllBytes();
+        } catch (AmazonClientException | IOException e) {
+            throw new CustomException(ErrorCode.FILE_DOWNLOAD_FAILED, "파일을 내려받는 데 실패했습니다: " + imageUrl);
+        }
+    }
+
+    // 이 앱의 키는 항상 "UUID_원본파일명" 한 세그먼트뿐이라(하위 디렉터리 없음),
+    // URL 마지막 "/" 뒤를 그대로 키로 쓰면 AWS 가상호스팅 스타일(bucket.s3...amazonaws.com/key)과
+    // MinIO 등의 path-style(endpoint/bucket/key) 양쪽 다 스타일 무관하게 동작한다
+    private String extractKey(String imageUrl) {
+        String fileName = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
+        return URLDecoder.decode(fileName, StandardCharsets.UTF_8);
     }
 
     private boolean isOwnedFile(String imageUrl) {

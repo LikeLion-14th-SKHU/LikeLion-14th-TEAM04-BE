@@ -46,6 +46,7 @@ public enum ErrorCode {
 
     // S3
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S3_500", "파일 업로드에 실패했습니다."),
+    FILE_DOWNLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S3_500-2", "파일 다운로드에 실패했습니다."),
 
     // Memory 도메인
     MEMORY_NOT_FOUND(HttpStatus.NOT_FOUND, "M_404", "존재하지 않는 추억입니다."),
