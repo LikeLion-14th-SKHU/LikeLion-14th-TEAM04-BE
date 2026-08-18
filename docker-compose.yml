@@ -90,6 +90,11 @@ services:
       S3_PUBLIC_URL: https://${DOMAIN}
     expose:
       - "8080"
+    # AI 서버(별도 docker compose 프로젝트)가 호스트에 8000번을 퍼블리시해뒀어도, 이 컨테이너
+    # 안에서 "localhost"는 이 컨테이너 자신을 가리켜서 못 찾는다 — host-gateway로 호스트를
+    # 가리키게 해준다. .env의 AI_BASE_URL을 http://host.docker.internal:8000으로 맞출 것
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # DuckDNS가 가리키는 IP를 주기적으로 우리 공인 IP로 갱신한다.
   # 가비아 DNS는 api.${DOMAIN}을 이 DuckDNS 주소로 CNAME 위임해뒀다 — IP가 바뀌어도
