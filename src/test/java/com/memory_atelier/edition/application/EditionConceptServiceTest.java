@@ -71,6 +71,8 @@ class EditionConceptServiceTest {
                 .memory(newMemory(owner))
                 .generationNo(1)
                 .storySnapshot("테스트 사연")
+                .targetCategoryMain("가방")
+                .targetCategorySub("토트백")
                 .build());
 
         EditionConcept readyConcept = conceptRepository.save(EditionConcept.builder()
@@ -139,6 +141,8 @@ class EditionConceptServiceTest {
                 .memory(newMemory(poorUser))
                 .generationNo(1)
                 .storySnapshot("테스트 사연")
+                .targetCategoryMain("가방")
+                .targetCategorySub("토트백")
                 .build());
         EditionConcept poorReadyConcept = conceptRepository.save(EditionConcept.builder()
                 .generation(poorGeneration)

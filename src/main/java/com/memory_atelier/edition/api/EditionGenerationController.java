@@ -1,5 +1,6 @@
 package com.memory_atelier.edition.api;
 
+import com.memory_atelier.edition.api.dto.request.EditionGenerationRequestDto;
 import com.memory_atelier.edition.api.dto.request.EditionNameRequestDto;
 import com.memory_atelier.edition.api.dto.response.EditionGenerationResponseDto;
 import com.memory_atelier.edition.application.EditionGenerationService;
@@ -31,12 +32,15 @@ public class EditionGenerationController {
             description = "202 Accepted — 생성을 접수만 하고 즉시 응답합니다. AI 파이프라인은 뒤에서 비동기로 돌기 때문에 "
                     + "응답 시점의 콘셉트 3장은 모두 status=PENDING이고 imageUrl은 null입니다. "
                     + "응답의 generationId로 GET /edition-generations/{generationId}를 폴링해서 status가 IMAGE_READY가 되면 후보를 보여주세요(2초 간격 권장). "
-                    + "무료 생성 횟수를 넘긴 회차부터는 크레딧이 차감되며, 잔액이 모자라면 거절됩니다. AI 분석이 안 된 추억은 생성할 수 없습니다."
+                    + "무료 생성 횟수를 넘긴 회차부터는 크레딧이 차감되며, 잔액이 모자라면 거절됩니다. AI 분석이 안 된 추억은 생성할 수 없습니다. "
+                    + "목표 카테고리(categoryMain/categorySub)는 필수이며, 이 추억을 어떤 MCM 제품군으로 재해석할지 AI에게 전달합니다."
     )
     public ResponseEntity<ApiResponse<EditionGenerationResponseDto>> generate(
             @AuthenticationPrincipal Long userId,
-            @Parameter(description = "추억 id", example = "1") @PathVariable Long memoryId) {
-        EditionGenerationService.Generated generated = editionGenerationService.generate(userId, memoryId);
+            @Parameter(description = "추억 id", example = "1") @PathVariable Long memoryId,
+            @Valid @RequestBody EditionGenerationRequestDto requestDto) {
+        EditionGenerationService.Generated generated = editionGenerationService.generate(
+                userId, memoryId, requestDto.categoryMain(), requestDto.categorySub());
         return ApiResponse.success(SuccessCode.ACCEPTED, EditionGenerationResponseDto.from(generated));
     }
 

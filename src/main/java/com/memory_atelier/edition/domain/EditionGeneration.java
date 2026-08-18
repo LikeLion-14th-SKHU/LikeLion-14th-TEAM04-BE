@@ -58,14 +58,25 @@ public class EditionGeneration extends BaseTimeEntity {
     @Column(nullable = false, length = 500)
     private String storySnapshot;
 
+    /** 이 추억을 재해석할 목표 MCM 제품군 대분류. 의류 / 가방 / 악세사리 */
+    @Column(nullable = false, length = 50)
+    private String targetCategoryMain;
+
+    /** 목표 제품군 중분류(대분류에 종속). AI에게는 이 값이 target_category로 전달된다. */
+    @Column(nullable = false, length = 50)
+    private String targetCategorySub;
+
     /** FastAPI job id. 폴링에 쓰인다. job 접수 자체가 실패하면 비어 있을 수 있다. */
     private String jobId;
 
     @Builder
-    private EditionGeneration(Memory memory, int generationNo, String storySnapshot) {
+    private EditionGeneration(
+            Memory memory, int generationNo, String storySnapshot, String targetCategoryMain, String targetCategorySub) {
         this.memory = memory;
         this.generationNo = generationNo;
         this.storySnapshot = storySnapshot;
+        this.targetCategoryMain = targetCategoryMain;
+        this.targetCategorySub = targetCategorySub;
     }
 
     public boolean isOwnedBy(Long userId) {

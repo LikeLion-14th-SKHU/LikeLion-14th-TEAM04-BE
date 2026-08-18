@@ -75,6 +75,8 @@ class CertificateServiceTest {
                 .memory(memory)
                 .generationNo(1)
                 .storySnapshot("테스트 사연")
+                .targetCategoryMain("가방")
+                .targetCategorySub("토트백")
                 .build());
         generation.applyNarrative(List.of("Heritage Edition"), "보증서 문구");
 

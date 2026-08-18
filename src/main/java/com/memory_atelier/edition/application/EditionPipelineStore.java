@@ -42,7 +42,8 @@ public class EditionPipelineStore {
                 memory.getCategorySub(),
                 material,
                 memory.getConditionTags(),
-                generation.getStorySnapshot());
+                generation.getStorySnapshot(),
+                generation.getTargetCategorySub());
     }
 
     public record PipelineInput(
@@ -51,7 +52,8 @@ public class EditionPipelineStore {
             String categorySub,
             String material,
             List<String> condition,
-            String story) {
+            String story,
+            String targetCategory) {
     }
 
     /**

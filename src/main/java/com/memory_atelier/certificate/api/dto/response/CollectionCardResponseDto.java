@@ -25,7 +25,10 @@ public record CollectionCardResponseDto(
         String modelUrl,
 
         @Schema(description = "[뒷면] 보증서")
-        CertificateViewDto certificate
+        CertificateViewDto certificate,
+
+        @Schema(description = "[뒷면] 원본 옷 정보")
+        OriginalItemDto originalItem
 ) {
     public static CollectionCardResponseDto from(Certificate certificate) {
         EditionConcept concept = certificate.getConcept();
@@ -34,6 +37,7 @@ public record CollectionCardResponseDto(
                 concept.getImageUrl(),
                 concept.resolveGridImageUrl(),
                 concept.getModelUrl(),
-                CertificateViewDto.from(certificate));
+                CertificateViewDto.from(certificate),
+                OriginalItemDto.from(concept.getGeneration().getMemory()));
     }
 }

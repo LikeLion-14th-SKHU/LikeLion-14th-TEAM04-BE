@@ -20,6 +20,12 @@ public record EditionGenerationResponseDto(
         @Schema(description = "에디션명 후보. 이 중 다른 값으로 바꿀 수 있음")
         List<String> editionNameCandidates,
 
+        @Schema(description = "목표 카테고리 대분류. 의류 / 가방 / 악세사리", example = "가방")
+        String targetCategoryMain,
+
+        @Schema(description = "목표 카테고리 중분류", example = "토트백")
+        String targetCategorySub,
+
         @Schema(description = "이 배치에서 생성된 콘셉트 3장")
         List<EditionConceptResponseDto> concepts,
 
@@ -32,6 +38,8 @@ public record EditionGenerationResponseDto(
                 generation.getGenerationNo(),
                 generation.getEditionName(),
                 generation.getEditionNameCandidates(),
+                generation.getTargetCategoryMain(),
+                generation.getTargetCategorySub(),
                 concepts.stream().map(EditionConceptResponseDto::from).toList(),
                 generation.getCreatedAt());
     }

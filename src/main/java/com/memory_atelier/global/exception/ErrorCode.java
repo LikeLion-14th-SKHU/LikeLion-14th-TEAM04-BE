@@ -59,6 +59,7 @@ public enum ErrorCode {
     // Edition Generation 도메인
     EDITION_NOT_FOUND(HttpStatus.NOT_FOUND, "E_404", "존재하지 않는 에디션 생성 배치입니다."),
     MEMORY_ANALYSIS_NOT_READY(HttpStatus.CONFLICT, "E_409", "AI 분석이 완료된 추억만 에디션을 생성할 수 있습니다."),
+    INVALID_TARGET_CATEGORY(HttpStatus.BAD_REQUEST, "E_400", "선택할 수 없는 목표 카테고리입니다."),
 
     // Edition Concept 도메인
     CONCEPT_NOT_FOUND(HttpStatus.NOT_FOUND, "EC_404", "존재하지 않는 콘셉트입니다."),

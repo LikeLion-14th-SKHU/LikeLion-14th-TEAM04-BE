@@ -84,6 +84,8 @@ class LikeServiceTest {
                 .memory(memory)
                 .generationNo(1)
                 .storySnapshot("테스트 사연")
+                .targetCategoryMain("가방")
+                .targetCategorySub("토트백")
                 .build());
         EditionConcept concept = conceptRepository.save(
                 EditionConcept.builder().generation(generation).displayOrder(1).build());

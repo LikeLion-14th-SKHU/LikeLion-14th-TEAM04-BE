@@ -94,6 +94,8 @@ class SharedViewServiceTest {
                 .memory(memory)
                 .generationNo(generationNo)
                 .storySnapshot("테스트 사연")
+                .targetCategoryMain("가방")
+                .targetCategorySub("토트백")
                 .build());
         generation.applyNarrative(List.of("Shared Edition " + generationNo), "보증서 문구");
         return generationRepository.saveAndFlush(generation);

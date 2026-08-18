@@ -12,7 +12,7 @@ public record PipelineRunRequestDto(
         String targetCategory,
         boolean usePro
 ) {
-    public static PipelineRunRequestDto of(String imageBase64, UserInputDto userInput) {
-        return new PipelineRunRequestDto(imageBase64, userInput, null, false);
+    public static PipelineRunRequestDto of(String imageBase64, UserInputDto userInput, String targetCategory) {
+        return new PipelineRunRequestDto(imageBase64, userInput, targetCategory, false);
     }
 }

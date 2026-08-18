@@ -2,6 +2,7 @@ package com.memory_atelier.edition.application;
 
 import com.memory_atelier.edition.domain.EditionConcept;
 import com.memory_atelier.edition.domain.EditionGeneration;
+import com.memory_atelier.edition.domain.TargetCategoryOptions;
 import com.memory_atelier.edition.domain.repository.EditionConceptRepository;
 import com.memory_atelier.edition.domain.repository.EditionGenerationRepository;
 import com.memory_atelier.global.exception.CustomException;
@@ -58,7 +59,9 @@ public class EditionGenerationService {
      * PENDING으로 만들어 두기만 하고 결과는 폴링으로 가져가게 한다.
      */
     @Transactional
-    public Generated generate(Long userId, Long memoryId) {
+    public Generated generate(Long userId, Long memoryId, String targetCategoryMain, String targetCategorySub) {
+        TargetCategoryOptions.validate(targetCategoryMain, targetCategorySub);
+
         Memory memory = memoryService.getMemory(userId, memoryId);
         if (!memory.isAnalyzed()) {
             throw new CustomException(ErrorCode.MEMORY_ANALYSIS_NOT_READY);
@@ -74,6 +77,8 @@ public class EditionGenerationService {
                         .memory(memory)
                         .generationNo(generationNo)
                         .storySnapshot(memory.resolveStoryForGeneration())
+                        .targetCategoryMain(targetCategoryMain)
+                        .targetCategorySub(targetCategorySub)
                         .build());
 
         List<EditionConcept> concepts = new ArrayList<>();

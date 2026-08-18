@@ -49,7 +49,7 @@ public class EditionPipelineRunner {
                     input.story());
 
             JobAcceptedResponseDto accepted =
-                    aiClient.runPipeline(PipelineRunRequestDto.of(imageBase64, userInput));
+                    aiClient.runPipeline(PipelineRunRequestDto.of(imageBase64, userInput, input.targetCategory()));
             store.assignJobId(generationId, accepted.jobId());
 
             pollUntilAwaitingSelection(generationId, accepted.jobId());
