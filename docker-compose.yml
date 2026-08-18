@@ -59,7 +59,10 @@ services:
       minio:
         condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      # prod 단독으로는 application-local.yaml에 있는 datasource/jwt/ai.base-url/s3 등의
+      # 설정이 전혀 로드되지 않아 부팅 자체가 실패한다(jwt.expiration 플레이스홀더 미해석 등).
+      # application-prod.yaml은 리버스 프록시용 설정(context-path 등)만 얹는 용도이므로 같이 활성화한다.
+      SPRING_PROFILES_ACTIVE: prod,local
       DB_HOST: mysql
       DB_PORT: 3306
       DB_NAME: ${DB_NAME:-memory_atelier}

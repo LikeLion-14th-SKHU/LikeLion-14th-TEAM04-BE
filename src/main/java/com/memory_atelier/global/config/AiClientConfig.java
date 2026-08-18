@@ -24,7 +24,10 @@ public class AiClientConfig {
                 .connectTimeout(Duration.ofSeconds(3))
                 .build();
         ClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-        ((JdkClientHttpRequestFactory) requestFactory).setReadTimeout(Duration.ofSeconds(10));
+        // /ai/v1/narrative 등 동기 엔드포인트는 내부에서 LLM(Claude/Gemini) 호출을 기다리므로
+        // 실측 18초+ 걸리는 경우가 있었다(테스트용 소형 이미지 기준) — 10초는 너무 짧아 AI 서버가
+        // 200을 반환하기 전에 매번 타임아웃됐다.
+        ((JdkClientHttpRequestFactory) requestFactory).setReadTimeout(Duration.ofSeconds(60));
 
         return RestClient.builder()
                 .baseUrl(baseUrl)
