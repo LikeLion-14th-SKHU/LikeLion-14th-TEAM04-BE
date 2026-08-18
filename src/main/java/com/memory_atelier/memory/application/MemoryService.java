@@ -146,7 +146,7 @@ public class MemoryService {
         String material = memory.isMaterialUnknown() ? ItemOptions.MATERIAL_UNSELECTED : memory.getMaterialUser();
         List<String> condition = memory.getConditionTags();
         return new UserInputDto(
-                new UserInputDto.ClothingCategoryDto(memory.getCategoryMain(), memory.getCategorySub()),
+                ItemOptions.toAiCategory(memory.getCategoryMain(), memory.getCategorySub()),
                 material,
                 condition,
                 memory.getStory());

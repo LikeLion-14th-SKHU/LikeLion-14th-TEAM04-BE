@@ -8,7 +8,7 @@ import java.util.List;
 // 값 검증(허용 카테고리·재질 등)은 이 인프라 계층이 아니라 이 DTO를 조립하는 도메인이 책임진다
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record UserInputDto(
-        // {main: "상의"|"하의"|"원피스"|"아우터", sub: 대분류별 중분류(자유 텍스트 직접입력 포함)}
+        // {main: "상의"|"하의"|"원피스"|"아우터", sub: 대분류별 중분류 또는 "직접입력"}
         ClothingCategoryDto category,
 
         // "데님"|"가죽"|"니트"|"울"|"면"|"린넨"|"벨벳"|"레이스"|"선택안함"
@@ -20,9 +20,13 @@ public record UserInputDto(
         // 사연 원문, 1~500자
         String story
 ) {
+    // sub가 제시된 중분류 목록 밖이면 sub="직접입력"과 함께 subCustom(자유 텍스트, ≤20자)을 채운다
+    // (조립은 {@link com.memory_atelier.memory.domain.ItemOptions#toAiCategory} 참고)
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record ClothingCategoryDto(
             String main,
-            String sub
+            String sub,
+            String subCustom
     ) {
     }
 }

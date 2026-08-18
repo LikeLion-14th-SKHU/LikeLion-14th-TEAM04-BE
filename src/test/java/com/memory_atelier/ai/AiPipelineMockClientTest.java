@@ -16,7 +16,7 @@ class AiPipelineMockClientTest {
 
     @Test
     void 파이프라인_실행부터_완료까지_상태가_순서대로_전이한다() {
-        UserInputDto.ClothingCategoryDto category = new UserInputDto.ClothingCategoryDto("의류", "니트");
+        UserInputDto.ClothingCategoryDto category = new UserInputDto.ClothingCategoryDto("상의", "니트", null);
         UserInputDto userInput = new UserInputDto(category, "울", java.util.List.of("해짐"), "아빠가 물려준 니트예요.");
         PipelineRunRequestDto request = PipelineRunRequestDto.of("base64-image", userInput, "니트");
 

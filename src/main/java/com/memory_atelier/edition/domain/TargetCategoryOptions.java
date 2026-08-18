@@ -10,8 +10,9 @@ import java.util.Map;
 // AI 서버(FastAPI) target_category 계약과 1:1로 맞춘 값이므로 한 곳에만 둔다
 public final class TargetCategoryOptions {
 
+    // ai_pipeline/services/brand_assets.py의 RECREATION_TAXONOMY와 1:1로 맞춘 값이다
     private static final Map<String, List<String>> CATEGORIES = new LinkedHashMap<>(Map.of(
-            "의류", List.of("니트", "가디건", "셔츠", "자켓", "원피스", "후드티", "블라우스", "팬츠"),
+            "의류", List.of("니트", "가디건", "셔츠", "자켓", "스커트", "후드티", "티셔츠", "팬츠"),
             "가방", List.of("핸드백", "토트백", "백팩", "클러치", "트래블"),
             "악세사리", List.of("벨트", "스카프", "지갑", "키링", "헤어밴드")));
 

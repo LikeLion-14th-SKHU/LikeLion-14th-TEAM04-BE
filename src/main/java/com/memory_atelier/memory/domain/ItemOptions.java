@@ -1,5 +1,6 @@
 package com.memory_atelier.memory.domain;
 
+import com.memory_atelier.ai.dto.request.UserInputDto;
 import com.memory_atelier.global.exception.CustomException;
 import com.memory_atelier.global.exception.ErrorCode;
 import java.util.LinkedHashMap;
@@ -15,6 +16,12 @@ public final class ItemOptions {
 
     // 재질 토글의 '선택안함'. 이 값이면 재질 판정을 Stage 1 Vision 추정에 위임한다
     public static final String MATERIAL_UNSELECTED = "선택안함";
+
+    // AI 서버 계약의 '직접입력' 서브 카테고리 리터럴. 목록 밖 값은 이걸로 감싸 subCustom에 실어 보낸다
+    public static final String CUSTOM_SUB = "직접입력";
+
+    // AI 서버 스키마의 sub_custom 최대 길이(ai_pipeline/schemas/user_input.py의 SUB_CUSTOM_MAX_LENGTH)
+    private static final int CUSTOM_SUB_MAX_LENGTH = 20;
 
     private static final Map<String, List<String>> CATEGORIES = new LinkedHashMap<>(Map.of(
             "상의", List.of("티셔츠", "셔츠", "블라우스", "니트", "맨투맨", "후드티"),
@@ -44,6 +51,23 @@ public final class ItemOptions {
         if (!isPresent(categoryMain) || !isPresent(categorySub)) {
             throw invalid("AI 분석을 실행하려면 카테고리(대분류·중분류)를 먼저 선택해야 합니다.");
         }
+    }
+
+    // categorySub가 제시된 중분류 목록에 있으면 그대로, 없으면(직접입력) sub="직접입력" +
+    // subCustom(최대 20자로 자름)으로 감싸 AI 서버 계약에 맞춘다
+    public static UserInputDto.ClothingCategoryDto toAiCategory(String categoryMain, String categorySub) {
+        List<String> subs = CATEGORIES.get(categoryMain);
+        if (subs != null && subs.contains(categorySub)) {
+            return new UserInputDto.ClothingCategoryDto(categoryMain, categorySub, null);
+        }
+        return new UserInputDto.ClothingCategoryDto(categoryMain, CUSTOM_SUB, truncate(categorySub));
+    }
+
+    private static String truncate(String value) {
+        if (value == null || value.length() <= CUSTOM_SUB_MAX_LENGTH) {
+            return value;
+        }
+        return value.substring(0, CUSTOM_SUB_MAX_LENGTH);
     }
 
     private static void validateCategory(String categoryMain, String categorySub) {

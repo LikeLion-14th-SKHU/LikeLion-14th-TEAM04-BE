@@ -6,6 +6,7 @@ import com.memory_atelier.ai.dto.request.PipelineRunRequestDto;
 import com.memory_atelier.ai.dto.request.UserInputDto;
 import com.memory_atelier.ai.dto.response.JobAcceptedResponseDto;
 import com.memory_atelier.ai.dto.response.JobInfoResponseDto;
+import com.memory_atelier.memory.domain.ItemOptions;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +44,7 @@ public class EditionPipelineRunner {
             EditionPipelineStore.PipelineInput input = store.loadInput(generationId);
             String imageBase64 = imageFetcher.fetchAsBase64(input.photoUrl());
             UserInputDto userInput = new UserInputDto(
-                    new UserInputDto.ClothingCategoryDto(input.categoryMain(), input.categorySub()),
+                    ItemOptions.toAiCategory(input.categoryMain(), input.categorySub()),
                     input.material(),
                     input.condition(),
                     input.story());
