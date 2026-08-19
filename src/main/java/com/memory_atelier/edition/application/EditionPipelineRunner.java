@@ -38,6 +38,12 @@ public class EditionPipelineRunner {
     @Value("${app.ai.max-poll-attempts:60}")
     private int maxPollAttempts;
 
+    // AI 서버가 돌려주는 image_url/glb_url 등은 AI 자신 기준 상대경로(/ai/static/..., /ai/assets/...)라
+    // photoUrl과 달리 프론트가 그대로 열 수 없다. photoUrl과 같은 공개 도메인을 재사용해 절대경로로
+    // 통일한다(ai.base-url은 host.docker.internal 같은 내부 전용 주소라 여기 쓰면 안 됨).
+    @Value("${cloud.aws.s3.public-url:}")
+    private String publicBaseUrl;
+
     @Async("editionPipelineExecutor")
     public void runGeneration(Long generationId) {
         try {
@@ -100,6 +106,7 @@ public class EditionPipelineRunner {
                 (List<Map<String, Object>>) result.getOrDefault("candidates", List.of());
         List<PipelineCandidateDto> candidates = rawCandidates.stream()
                 .map(c -> objectMapper.convertValue(c, PipelineCandidateDto.class))
+                .map(c -> new PipelineCandidateDto(c.index(), c.spec(), toPublicUrl(c.imageUrl()), c.gate()))
                 .toList();
 
         store.applyAwaitingSelection(generationId, editionNameCandidates, certificateText, candidates);
@@ -151,8 +158,8 @@ public class EditionPipelineRunner {
         if (result == null) {
             return;
         }
-        String modelUrl = (String) result.get("glb_url");
-        String frontImageUrl = (String) result.get("front_image_url");
+        String modelUrl = toPublicUrl((String) result.get("glb_url"));
+        String frontImageUrl = toPublicUrl((String) result.get("front_image_url"));
         store.applyModel(conceptId, modelUrl, frontImageUrl);
 
         // 같은 job이 3D 변환 직후 Stage 5(큐레이션)까지 이어서 실행해 result.curation에 실어 준다
@@ -175,8 +182,18 @@ public class EditionPipelineRunner {
                         (String) r.get("name_kr"),
                         (String) r.get("reason"),
                         (String) r.get("tagline"),
-                        (String) r.get("image_url")))
+                        toPublicUrl((String) r.get("image_url"))))
                 .toList();
         eventPublisher.publishEvent(new PipelineEvents.CurationReceived(conceptId, recommendations));
+    }
+
+    // 이미 절대경로(http로 시작)면 그대로 두고, 공개 도메인이 설정 안 된 환경(로컬 등)에서는
+    // 원본 상대경로를 그대로 반환한다 — S3Uploader#buildUrl의 빈 값 처리와 같은 방침.
+    private String toPublicUrl(String path) {
+        if (path == null || path.startsWith("http") || publicBaseUrl == null || publicBaseUrl.isBlank()) {
+            return path;
+        }
+        String base = publicBaseUrl.endsWith("/") ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1) : publicBaseUrl;
+        return base + path;
     }
 }
