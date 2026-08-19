@@ -47,6 +47,8 @@ public enum ErrorCode {
     // S3
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S3_500", "파일 업로드에 실패했습니다."),
     FILE_DOWNLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S3_500-2", "파일 다운로드에 실패했습니다."),
+    FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "S3_413", "이미지 파일은 5MB를 넘을 수 없습니다."),
+    INVALID_IMAGE_FORMAT(HttpStatus.BAD_REQUEST, "S3_400", "지원하지 않는 이미지 형식입니다. JPEG 또는 PNG 파일만 업로드할 수 있습니다."),
 
     // Memory 도메인
     MEMORY_NOT_FOUND(HttpStatus.NOT_FOUND, "M_404", "존재하지 않는 추억입니다."),
@@ -102,6 +104,7 @@ public enum ErrorCode {
             case 404 -> NOT_FOUND;
             case 405 -> METHOD_NOT_ALLOWED;
             case 409 -> CONFLICT;
+            case 413 -> FILE_TOO_LARGE;
             case 429 -> TOO_MANY_REQUESTS;
             case 502 -> EXTERNAL_API_ERROR;
             default -> statusCode.is4xxClientError() ? INVALID_INPUT : INTERNAL_SERVER_ERROR;

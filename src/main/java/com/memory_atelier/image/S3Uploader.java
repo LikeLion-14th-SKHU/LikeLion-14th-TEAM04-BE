@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -20,6 +21,12 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class S3Uploader {
+
+    // JPEG(FF D8 FF)·PNG(89 50 4E 47 0D 0A 1A 0A) 매직바이트. 확장자·Content-Type 헤더는
+    // 업로더가 임의로 조작 가능해서 못 믿는다 — 실제 파일 내용을 직접 확인한다
+    private static final byte[] JPEG_MAGIC = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
+    private static final byte[] PNG_MAGIC =
+            {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', (byte) 0x1A, '\n'};
 
     private final AmazonS3 amazonS3;
 
@@ -36,15 +43,43 @@ public class S3Uploader {
 
     public String upload(MultipartFile file) throws IOException {
 
+        byte[] content = file.getBytes();
+        // Content-Type은 클라이언트가 보낸 헤더가 아니라 여기서 실제 바이트를 보고 판정한 값만
+        // 쓴다 — 그렇지 않으면 Content-Type: text/html로 위장해 올린 파일이 그대로 공개
+        // 버킷에서 HTML로 서빙되는 저장형 XSS 경로가 열린다
+        String contentType = detectImageContentType(content);
+
         String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
 
         ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentLength(file.getSize());
-        metadata.setContentType(file.getContentType());
+        metadata.setContentLength(content.length);
+        metadata.setContentType(contentType);
 
-        amazonS3.putObject(bucket, fileName, file.getInputStream(), metadata);
+        amazonS3.putObject(bucket, fileName, new ByteArrayInputStream(content), metadata);
 
         return buildUrl(fileName);
+    }
+
+    private String detectImageContentType(byte[] content) {
+        if (startsWith(content, PNG_MAGIC)) {
+            return "image/png";
+        }
+        if (startsWith(content, JPEG_MAGIC)) {
+            return "image/jpeg";
+        }
+        throw new CustomException(ErrorCode.INVALID_IMAGE_FORMAT);
+    }
+
+    private boolean startsWith(byte[] content, byte[] magic) {
+        if (content.length < magic.length) {
+            return false;
+        }
+        for (int i = 0; i < magic.length; i++) {
+            if (content[i] != magic[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private String buildUrl(String fileName) {
