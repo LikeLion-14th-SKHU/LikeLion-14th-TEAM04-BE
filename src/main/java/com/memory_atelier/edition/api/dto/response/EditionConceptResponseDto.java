@@ -43,7 +43,17 @@ public record EditionConceptResponseDto(
     // 잠긴 후보는 이미지뿐 아니라 재창조 방식·근거도 가린다
     // 결제 없이 내용을 알 수 있으면 열람 결제가 무의미해진다
     public static EditionConceptResponseDto from(EditionConcept concept) {
-        boolean visible = concept.isUnlocked();
+        return build(concept, concept.isUnlocked());
+    }
+
+    // 관리자 전용 — 잠금 여부와 무관하게 항상 전체 내용을 노출한다.
+    // 일반 사용자 API(from)에는 절대 쓰면 안 된다 — 크레딧 결제 없이 내용이 다 보이면
+    // 열람 결제가 무의미해진다
+    public static EditionConceptResponseDto fromUnmasked(EditionConcept concept) {
+        return build(concept, true);
+    }
+
+    private static EditionConceptResponseDto build(EditionConcept concept, boolean visible) {
         return new EditionConceptResponseDto(
                 concept.getConceptId(),
                 concept.getDisplayOrder(),

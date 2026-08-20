@@ -9,6 +9,7 @@ import com.memory_atelier.global.exception.CustomException;
 import com.memory_atelier.global.exception.ErrorCode;
 import com.memory_atelier.memory.application.MemoryService;
 import com.memory_atelier.memory.domain.Memory;
+import com.memory_atelier.memory.domain.repository.MemoryRepository;
 import com.memory_atelier.user.application.CreditPolicy;
 import com.memory_atelier.user.application.CreditService;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ public class EditionGenerationService {
     private final EditionGenerationRepository generationRepository;
     private final EditionConceptRepository conceptRepository;
     private final MemoryService memoryService;
+    private final MemoryRepository memoryRepository;
     private final CreditService creditService;
     private final CreditPolicy creditPolicy;
     private final ApplicationEventPublisher eventPublisher;
@@ -40,6 +42,7 @@ public class EditionGenerationService {
             EditionGenerationRepository generationRepository,
             EditionConceptRepository conceptRepository,
             MemoryService memoryService,
+            MemoryRepository memoryRepository,
             CreditService creditService,
             CreditPolicy creditPolicy,
             ApplicationEventPublisher eventPublisher,
@@ -47,6 +50,7 @@ public class EditionGenerationService {
         this.generationRepository = generationRepository;
         this.conceptRepository = conceptRepository;
         this.memoryService = memoryService;
+        this.memoryRepository = memoryRepository;
         this.creditService = creditService;
         this.creditPolicy = creditPolicy;
         this.eventPublisher = eventPublisher;
@@ -120,6 +124,20 @@ public class EditionGenerationService {
     /** 추억 하나의 생성 이력. 콘셉트는 배치마다 조회하지 않고 한 번에 가져와 묶는다. */
     public Page<Generated> getGenerationsByMemory(Long userId, Long memoryId, Pageable pageable) {
         memoryService.getMemory(userId, memoryId);
+        return findGenerationsByMemory(memoryId, pageable);
+    }
+
+    // 관리자 전용 — 소유자 무관하게 같은 목록을 조회한다. 컨트롤러가 ADMIN 권한을 이미
+    // 확인한 뒤에만 호출해야 한다. 일반 API(getGenerationsByMemory)와 목록 형태를 맞춰서,
+    // GET /memories/{memoryId}/edition-generations를 그대로 아는 관리자가 헷갈리지 않게 한다
+    public Page<Generated> getGenerationsByMemoryForAdmin(Long memoryId, Pageable pageable) {
+        if (!memoryRepository.existsById(memoryId)) {
+            throw new CustomException(ErrorCode.MEMORY_NOT_FOUND);
+        }
+        return findGenerationsByMemory(memoryId, pageable);
+    }
+
+    private Page<Generated> findGenerationsByMemory(Long memoryId, Pageable pageable) {
         Page<EditionGeneration> page =
                 generationRepository.findAllByMemoryMemoryIdOrderByGenerationNoDesc(memoryId, pageable);
         Map<Long, List<EditionConcept>> conceptsByGenerationId = conceptRepository
