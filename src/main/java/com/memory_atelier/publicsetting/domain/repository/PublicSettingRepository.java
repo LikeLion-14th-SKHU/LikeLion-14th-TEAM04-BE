@@ -26,13 +26,13 @@ public interface PublicSettingRepository extends JpaRepository<PublicSetting, Lo
             """)
     Optional<PublicSetting> findByShareToken(@Param("shareToken") String shareToken);
 
-    // 공개 옷장(사람) 목록. 닉네임 필터와 탈퇴 사용자 제외를 모두 쿼리에서 처리한다
+    // 공개 옷장(사람) 목록. 탈퇴한 유저도 제외하지 않는다 — 콘텐츠는 유지하고 닉네임만
+    // 가리는 정책이라(User.displayNickname 참고), 여기서 걸러내면 그 정책과 어긋난다
     @Query("""
             select s from PublicSetting s
             join fetch s.user u
             where s.targetType = com.memory_atelier.publicsetting.domain.PublicSettingTargetType.ALL_COLLECTION
               and s.isPublic = true
-              and u.deletedAt is null
               and lower(u.nickname) like lower(concat('%', :keyword, '%'))
             order by s.publicSettingId desc
             """)
