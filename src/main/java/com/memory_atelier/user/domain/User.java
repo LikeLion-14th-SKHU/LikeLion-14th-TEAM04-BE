@@ -103,11 +103,32 @@ public class User extends BaseTimeEntity {
         this.credit += amount;
     }
 
+    private static final String WITHDRAWN_DISPLAY_NAME = "탈퇴한 사용자";
+
     public void withdraw() {
         this.deletedAt = LocalDateTime.now();
     }
 
+    // 유예 기간 안에 재로그인해서 탈퇴를 취소할 때 쓴다 — AuthService.login 참고
+    public void cancelWithdrawal() {
+        this.deletedAt = null;
+    }
+
     public boolean isActive() {
         return this.deletedAt == null;
+    }
+
+    // 공개 피드·컬렉션 목록 등 타인에게 노출되는 곳에서 쓴다. 콘텐츠는 그대로 두고
+    // 닉네임만 가려서, 탈퇴(유예 기간 포함) 후에도 실제 활동 이력은 보존하되 신원만 감춘다
+    public String displayNickname() {
+        return isActive() ? nickname : WITHDRAWN_DISPLAY_NAME;
+    }
+
+    // email에 유니크 제약이 있어서, 쿨다운이 끝나 같은 이메일로 새로 가입하려는 사람이 있을 때
+    // 이 자리를 차지하고 있는 옛 탈퇴 계정의 이메일을 비워준다(AuthService.signup 참고).
+    // 스케줄러 없이, 실제로 그 이메일이 다시 필요해지는 시점에만 지연 처리한다
+    public void releaseEmailForReuse() {
+        this.email = "withdrawn-user-" + userId + "@removed.invalid";
+        this.anonymized = true;
     }
 }

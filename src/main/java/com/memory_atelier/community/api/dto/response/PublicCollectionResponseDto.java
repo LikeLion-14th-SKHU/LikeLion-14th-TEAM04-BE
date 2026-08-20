@@ -23,7 +23,7 @@ public record PublicCollectionResponseDto(
     public static PublicCollectionResponseDto from(PublicSetting setting) {
         return new PublicCollectionResponseDto(
                 setting.getUser().getUserId(),
-                setting.getUser().getNickname(),
+                setting.getUser().displayNickname(),
                 setting.getUser().getProfileImageUrl(),
                 setting.getShareToken());
     }

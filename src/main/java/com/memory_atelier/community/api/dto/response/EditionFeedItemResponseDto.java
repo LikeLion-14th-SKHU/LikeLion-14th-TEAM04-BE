@@ -53,7 +53,7 @@ public record EditionFeedItemResponseDto(
                 certificate.getEditionNumber(),
                 certificate.getCategory(),
                 owner.getUserId(),
-                owner.getNickname(),
+                owner.displayNickname(),
                 owner.getProfileImageUrl(),
                 card.likeCount(),
                 certificate.getCreatedAt());

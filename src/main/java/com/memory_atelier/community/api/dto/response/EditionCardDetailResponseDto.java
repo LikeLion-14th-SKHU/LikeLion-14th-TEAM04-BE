@@ -48,7 +48,7 @@ public record EditionCardDetailResponseDto(
                 concept.getModelUrl(),
                 CertificateViewDto.from(certificate),
                 owner.getUserId(),
-                owner.getNickname(),
+                owner.displayNickname(),
                 owner.getProfileImageUrl(),
                 card.likeCount());
     }

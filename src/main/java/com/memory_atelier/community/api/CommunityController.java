@@ -90,6 +90,6 @@ public class CommunityController {
         PageResponse<SharedCardResponseDto> cards = PageResponse.of(
                 sharedViewService.getSharedCards(setting, pageable), SharedCardResponseDto::from);
         return ApiResponse.success(SuccessCode.GET_SUCCESS, new SharedViewResponseDto(
-                setting.getTargetType().name(), setting.getUser().getNickname(), cards));
+                setting.getTargetType().name(), setting.getUser().displayNickname(), cards));
     }
 }

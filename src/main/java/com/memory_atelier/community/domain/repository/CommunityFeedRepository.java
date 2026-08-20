@@ -41,8 +41,7 @@ public interface CommunityFeedRepository extends Repository<Certificate, Long> {
               left join PublicSetting card on card.user = u and card.scopeKey = c.conceptId
               left join PublicSetting col on col.user = u and col.scopeKey = 0L
               left join Like l on l.concept = c
-            where u.deletedAt is null
-              and coalesce(card.isPublic, col.isPublic, false) = true
+            where coalesce(card.isPublic, col.isPublic, false) = true
               and (:keyword = ''
                    or lower(cert.editionName) like lower(concat('%', :keyword, '%'))
                    or lower(u.nickname) like lower(concat('%', :keyword, '%')))
@@ -61,8 +60,7 @@ public interface CommunityFeedRepository extends Repository<Certificate, Long> {
               join m.user u
               left join PublicSetting card on card.user = u and card.scopeKey = c.conceptId
               left join PublicSetting col on col.user = u and col.scopeKey = 0L
-            where u.deletedAt is null
-              and coalesce(card.isPublic, col.isPublic, false) = true
+            where coalesce(card.isPublic, col.isPublic, false) = true
               and (:keyword = ''
                    or lower(cert.editionName) like lower(concat('%', :keyword, '%'))
                    or lower(u.nickname) like lower(concat('%', :keyword, '%')))
@@ -80,8 +78,7 @@ public interface CommunityFeedRepository extends Repository<Certificate, Long> {
               join m.user u
               left join PublicSetting card on card.user = u and card.scopeKey = c.conceptId
               left join PublicSetting col on col.user = u and col.scopeKey = 0L
-            where u.deletedAt is null
-              and coalesce(card.isPublic, col.isPublic, false) = true
+            where coalesce(card.isPublic, col.isPublic, false) = true
               and (:keyword = ''
                    or lower(cert.editionName) like lower(concat('%', :keyword, '%'))
                    or lower(u.nickname) like lower(concat('%', :keyword, '%')))
