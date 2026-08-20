@@ -11,24 +11,20 @@ import com.memory_atelier.user.application.UserService;
 import com.memory_atelier.user.domain.User;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PublicSettingService {
 
     private final PublicSettingRepository publicSettingRepository;
-    private final PublicSettingCreator publicSettingCreator;
     private final UserService userService;
     private final EditionConceptService editionConceptService;
 
@@ -75,11 +71,13 @@ public class PublicSettingService {
                         .orElse(false));
     }
 
-    // 공유 토큰으로 공개 설정을 찾는다. 비공개거나 탈퇴한 사용자의 토큰이면 존재하지 않는 것처럼 거절한다
+    // 공유 토큰으로 공개 설정을 찾는다. 비공개 토큰이면 존재하지 않는 것처럼 거절한다.
+    // 탈퇴한 사용자여도 막지 않는다 — 콘텐츠는 유지하고 닉네임만 가리는 정책이라
+    // (User.displayNickname 참고) 여기서 걸러내면 그 정책과 어긋난다
     public PublicSetting getPublicByShareToken(String shareToken) {
         PublicSetting setting = publicSettingRepository.findByShareToken(shareToken)
                 .orElseThrow(() -> new CustomException(ErrorCode.PUBLIC_SETTING_NOT_FOUND));
-        if (!setting.isPublic() || !setting.getUser().isActive()) {
+        if (!setting.isPublic()) {
             throw new CustomException(ErrorCode.PUBLIC_SETTING_NOT_FOUND);
         }
         return setting;
@@ -100,21 +98,27 @@ public class PublicSettingService {
                 .collect(Collectors.toSet());
     }
 
+    // 같은 트랜잭션에서 조회 후 없으면 바로 생성한다. 예전에는 생성을 REQUIRES_NEW로 별도
+    // 트랜잭션에 분리하고 실패 시 재조회하는 방식이었는데, MySQL 기본 격리수준(REPEATABLE READ)
+    // 에서는 바깥 트랜잭션이 애초에 자기 시작 시점 스냅샷에 갇혀있어서, 안쪽 트랜잭션이 방금
+    // 커밋한 행을 재조회해도 안 보여 매번 "생성 실패"로 잘못 떨어졌다(첫 토글이 무조건 실패하는
+    // 버그였음). 같은 트랜잭션 안에서 저장한 엔티티를 그대로 쓰면 이 문제가 없다.
+    // 아주 드문 동시 최초 생성 경합은 유니크 제약 위반(DataIntegrityViolationException)으로
+    // 자연스럽게 실패하고, GlobalExceptionHandler가 409로 응답한다 — 호출자가 재시도하면 된다
     private PublicSetting getOrCreate(Long userId, PublicSettingTargetType targetType, EditionConcept concept) {
         long scopeKey = (concept != null) ? concept.getConceptId() : PublicSetting.COLLECTION_SCOPE_KEY;
         return publicSettingRepository.findByUserUserIdAndScopeKey(userId, scopeKey)
-                .orElseGet(() -> create(userId, targetType, concept, scopeKey));
+                .orElseGet(() -> create(userId, targetType, concept));
     }
 
-    private PublicSetting create(Long userId, PublicSettingTargetType targetType, EditionConcept concept, long scopeKey) {
+    private PublicSetting create(Long userId, PublicSettingTargetType targetType, EditionConcept concept) {
         User user = userService.getActiveUser(userId);
-        try {
-            publicSettingCreator.create(user, targetType, concept);
-        } catch (DataAccessException | UnexpectedRollbackException e) {
-            // 동시 요청이 먼저 만들었다는 뜻이므로 아래에서 그 행을 다시 읽으면 된다
-            log.debug("공개 설정이 이미 존재합니다: userId={}, scopeKey={}", userId, scopeKey);
-        }
-        return publicSettingRepository.findByUserUserIdAndScopeKey(userId, scopeKey)
-                .orElseThrow(() -> new CustomException(ErrorCode.CONFLICT, "공개 설정 생성에 실패했습니다. 다시 시도해 주세요."));
+        return publicSettingRepository.saveAndFlush(
+                PublicSetting.builder()
+                        .user(user)
+                        .targetType(targetType)
+                        .concept(concept)
+                        .shareToken(UUID.randomUUID().toString())
+                        .build());
     }
 }
