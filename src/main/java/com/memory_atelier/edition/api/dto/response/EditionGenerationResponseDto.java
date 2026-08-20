@@ -1,0 +1,64 @@
+package com.memory_atelier.edition.api.dto.response;
+
+import com.memory_atelier.edition.application.EditionGenerationService.Generated;
+import com.memory_atelier.edition.domain.EditionConcept;
+import com.memory_atelier.edition.domain.EditionGeneration;
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.Instant;
+import java.util.List;
+
+public record EditionGenerationResponseDto(
+        @Schema(description = "에디션 생성 배치 id", example = "1")
+        Long generationId,
+
+        @Schema(description = "재생성 회차(1부터 시작)", example = "1")
+        int generationNo,
+
+        @Schema(description = "선택된 에디션명(생성 직후에는 null)")
+        String editionName,
+
+        @Schema(description = "에디션명 후보. 이 중 다른 값으로 바꿀 수 있음")
+        List<String> editionNameCandidates,
+
+        @Schema(description = "목표 카테고리 대분류. 의류 / 가방 / 악세사리", example = "가방")
+        String targetCategoryMain,
+
+        @Schema(description = "목표 카테고리 중분류", example = "토트백")
+        String targetCategorySub,
+
+        @Schema(description = "이 배치에서 생성된 콘셉트 3장")
+        List<EditionConceptResponseDto> concepts,
+
+        @Schema(description = "생성일시")
+        Instant createdAt
+) {
+    public static EditionGenerationResponseDto of(EditionGeneration generation, List<EditionConcept> concepts) {
+        return new EditionGenerationResponseDto(
+                generation.getGenerationId(),
+                generation.getGenerationNo(),
+                generation.getEditionName(),
+                generation.getEditionNameCandidates(),
+                generation.getTargetCategoryMain(),
+                generation.getTargetCategorySub(),
+                concepts.stream().map(EditionConceptResponseDto::from).toList(),
+                generation.getCreatedAt());
+    }
+
+    public static EditionGenerationResponseDto from(Generated generated) {
+        return of(generated.generation(), generated.concepts());
+    }
+
+    // 관리자 전용 — 콘셉트 잠금 여부와 무관하게 3장 전부 전체 내용으로 내려준다
+    public static EditionGenerationResponseDto ofUnmasked(Generated generated) {
+        EditionGeneration generation = generated.generation();
+        return new EditionGenerationResponseDto(
+                generation.getGenerationId(),
+                generation.getGenerationNo(),
+                generation.getEditionName(),
+                generation.getEditionNameCandidates(),
+                generation.getTargetCategoryMain(),
+                generation.getTargetCategorySub(),
+                generated.concepts().stream().map(EditionConceptResponseDto::fromUnmasked).toList(),
+                generation.getCreatedAt());
+    }
+}

@@ -1,0 +1,144 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-memory_atelier}
+      MYSQL_USER: ${DB_USERNAME:-memory_atelier}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # 버킷 생성 + 공개 다운로드 정책을 한 번만 설정하고 끝나는 1회성 컨테이너.
+  # 지금은 사진 URL을 서버가 그대로 돌려주고 프론트가 바로 여는 구조라(프리사인드 URL 없음),
+  # 버킷이 공개 다운로드가 아니면 업로드는 되는데 이미지가 아무 데서도 안 열린다.
+  minio-init:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET:-memory-atelier}
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} &&
+      mc mb -p local/$${S3_BUCKET} &&
+      mc anonymous set download local/$${S3_BUCKET}
+      "
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      # prod 단독으로는 application-local.yaml에 있는 datasource/jwt/ai.base-url/s3 등의
+      # 설정이 전혀 로드되지 않아 부팅 자체가 실패한다(jwt.expiration 플레이스홀더 미해석 등).
+      # application-prod.yaml은 리버스 프록시용 설정(context-path 등)만 얹는 용도이므로 같이 활성화한다.
+      SPRING_PROFILES_ACTIVE: prod,local
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-memory_atelier}
+      DB_USERNAME: ${DB_USERNAME:-memory_atelier}
+      DB_PASSWORD: ${DB_PASSWORD}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      JWT_SECRET: ${JWT_SECRET}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
+      KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      NAVER_CLIENT_ID: ${NAVER_CLIENT_ID}
+      NAVER_REDIRECT_URI: ${NAVER_REDIRECT_URI}
+      NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET}
+      AI_BASE_URL: ${AI_BASE_URL}
+      # MinIO 루트 계정을 그대로 앱의 S3 자격 증명으로 쓴다(단일 버킷짜리 홈서버 구성이라
+      # 별도 서비스 계정을 만들 실익이 적음 — 필요해지면 mc admin으로 전용 계정을 분리할 것)
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET:-memory-atelier}
+      # 앱→MinIO 업로드는 항상 내부 주소로 나간다(빠르고, NAT 헤어핀 문제가 없음)
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      # photoUrl에 실제로 실리는 주소만 별도로 공개 도메인을 쓴다(S3Uploader 참고).
+      # nginx가 /${S3_BUCKET}/ 경로를 minio로 프록시해줘야 이 주소가 실제로 열린다
+      S3_PUBLIC_URL: https://${DOMAIN}
+    expose:
+      - "8080"
+    # AI 서버(별도 docker compose 프로젝트)가 호스트에 8000번을 퍼블리시해뒀어도, 이 컨테이너
+    # 안에서 "localhost"는 이 컨테이너 자신을 가리켜서 못 찾는다 — host-gateway로 호스트를
+    # 가리키게 해준다. .env의 AI_BASE_URL을 http://host.docker.internal:8000으로 맞출 것
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # DuckDNS가 가리키는 IP를 주기적으로 우리 공인 IP로 갱신한다.
+  # 가비아 DNS는 api.${DOMAIN}을 이 DuckDNS 주소로 CNAME 위임해뒀다 — IP가 바뀌어도
+  # 가비아 쪽을 다시 손댈 필요가 없다
+  duckdns:
+    image: lscr.io/linuxserver/duckdns:latest
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Seoul
+      - SUBDOMAINS=${DUCKDNS_SUBDOMAIN}
+      - TOKEN=${DUCKDNS_TOKEN}
+
+  # 인증서 자동 갱신 전용. 최초 발급은 이 서비스가 아니라 init-letsencrypt.sh가 한다
+  # (그 스크립트 참고 — nginx가 아직 인증서 없이 못 뜨는 최초 부트스트랩 문제 때문에 순서를 탄다)
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: >
+      /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done"
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot-conf:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    # /ai/static/ location이 host.docker.internal:8000(별도 compose 프로젝트인 AI 서버)로
+    # 프록시하므로, app과 마찬가지로 host-gateway 매핑이 필요하다
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  mysql-data:
+  minio-data:
+  certbot-conf:
+  certbot-www:
