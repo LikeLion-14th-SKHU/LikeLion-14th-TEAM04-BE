@@ -47,4 +47,18 @@ public record EditionGenerationResponseDto(
     public static EditionGenerationResponseDto from(Generated generated) {
         return of(generated.generation(), generated.concepts());
     }
+
+    // 관리자 전용 — 콘셉트 잠금 여부와 무관하게 3장 전부 전체 내용으로 내려준다
+    public static EditionGenerationResponseDto ofUnmasked(Generated generated) {
+        EditionGeneration generation = generated.generation();
+        return new EditionGenerationResponseDto(
+                generation.getGenerationId(),
+                generation.getGenerationNo(),
+                generation.getEditionName(),
+                generation.getEditionNameCandidates(),
+                generation.getTargetCategoryMain(),
+                generation.getTargetCategorySub(),
+                generated.concepts().stream().map(EditionConceptResponseDto::fromUnmasked).toList(),
+                generation.getCreatedAt());
+    }
 }
